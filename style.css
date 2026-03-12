@@ -1,0 +1,106 @@
+:root {
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --primary: #2563eb;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --success: #10b981;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Screen visibility */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* Header & Nav */
+.header-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; }
+
+/* Area Item (The "Card" Style) */
+.area-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    cursor: pointer;
+}
+
+.area-item:active { background: #f1f5f9; }
+
+.badge {
+    background: #eff6ff;
+    color: var(--primary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* Input Fields */
+.input-wrapper {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    margin: 20px 0;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-top: 10px;
+    box-sizing: border-box;
+    background: #fdfdfd;
+}
+
+/* Buttons */
+.btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+
+/* Loader Overlay */
+.loader-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
