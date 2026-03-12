@@ -3,6 +3,7 @@
     --bg-color: #f8fafc;
     --card-bg: #ffffff;
     --primary: #2563eb;
+    --primary-dark: #1d4ed8;
     --text-main: #1e293b;
     --text-muted: #64748b;
     --border: #e2e8f0;
@@ -17,6 +18,7 @@ body {
     margin: 0;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
+    line-height: 1.5;
 }
 
 .app-container {
@@ -28,11 +30,16 @@ body {
     box-sizing: border-box;
 }
 
-/* --- Screens --- */
+/* --- Screen Management --- */
 .screen { display: none; }
-.screen.active { display: block; }
+.screen.active { display: block; animation: fadeIn 0.3s ease-out; }
 
-/* --- Components --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Components: Header & Badges --- */
 .header-nav { 
     display: flex; 
     align-items: center; 
@@ -40,96 +47,140 @@ body {
     margin-bottom: 25px; 
 }
 
-.area-item {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    padding: 20px;
-    border-radius: 16px;
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.area-item:active { background: #f1f5f9; }
-
 .badge {
     background: #eff6ff;
     color: var(--primary);
     padding: 6px 14px;
     border-radius: 20px;
     font-weight: 700;
+    font-size: 13px;
+    border: 1px solid #dbeafe;
+}
+
+/* --- Components: Area Cards (Main Menu) --- */
+.area-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 18px;
+    border-radius: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.area-item:active { 
+    transform: scale(0.98);
+    background: #f1f5f9; 
+}
+
+/* --- Components: Input Container (White Card style) --- */
+.input-container {
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    margin-top: 10px;
+}
+
+/* --- Input Fields & Unit Display --- */
+input[type="text"], .main-input {
+    width: 100%;
+    padding: 16px;
+    font-size: 18px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    box-sizing: border-box;
+    background: #fdfdfd;
+    transition: border-color 0.2s;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: #ffffff;
+}
+
+#unitDisplay {
+    background: #f1f5f9;
+    padding: 0 15px;
+    height: 58px; /* Menyesuaikan tinggi input */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-weight: 700;
+    color: var(--text-main);
+    min-width: 70px;
+    border: 1px solid var(--border);
     font-size: 14px;
 }
 
-/* --- Input & Buttons --- */
-.input-wrapper {
-    background: var(--card-bg);
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    margin: 20px 0;
-}
-
-input[type="text"], .main-input {
-    width: 100%;
-    padding: 15px;
-    font-size: 16px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-top: 10px;
-    box-sizing: border-box;
-    background: #fdfdfd;
-}
-
+/* --- Buttons --- */
 .btn {
     width: 100%;
     padding: 16px;
-    border-radius: 12px;
+    border-radius: 14px;
     border: none;
     font-weight: 700;
+    font-size: 15px;
     text-transform: uppercase;
     cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
-.btn-primary { background: var(--primary); color: white; }
-.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+.btn-primary { 
+    background: var(--primary); 
+    color: white; 
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary:active { background: var(--primary-dark); transform: translateY(1px); }
+
+.btn-outline { 
+    background: transparent; 
+    border: 1px solid var(--border); 
+    color: var(--text-main); 
+}
+
+.btn-outline:active { background: #f8fafc; }
 
 /* --- Custom Alert Overlay --- */
 .custom-alert {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(15, 23, 42, 0.6);
     display: flex; justify-content: center; align-items: center;
     z-index: 10000;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(6px);
 }
 .custom-alert.hidden { display: none; }
 
 .alert-content {
-    background: white; padding: 30px; border-radius: 24px;
-    width: 85%; max-width: 320px; text-align: center;
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-    animation: popupIn 0.3s ease-out;
+    background: white; padding: 32px; border-radius: 28px;
+    width: 85%; max-width: 340px; text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: popupIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes popupIn {
-    from { transform: scale(0.9); opacity: 0; }
+    from { transform: scale(0.8); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
-}
-
-.alert-content button {
-    margin-top: 20px; width: 100%; padding: 14px;
-    background: var(--primary); color: white; border: none;
-    border-radius: 12px; font-weight: 700; cursor: pointer;
 }
 
 /* --- Loader Overlay --- */
 .loader-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(248, 250, 252, 0.9);
     display: flex; flex-direction: column; 
     justify-content: center; align-items: center; z-index: 9999;
 }
