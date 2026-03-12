@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>Turbine Logsheet Pro - PT Petrokimia Gresik</title>
+    <link rel="stylesheet" href="style.css?v=1.0">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:,"> </head>
+<body>
+
+<div id="loader" class="loader-overlay">
+    <div style="width: 45px; height: 45px; border: 4px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+    <p style="margin-top: 20px; font-weight: 500; color: white;">Sinkronisasi Data...</p>
+</div>
+
+<div class="app-container">
+    <div id="homeScreen" class="screen active">
+        <div class="home-hero">
+            <div class="logo-area">⚙️</div>
+            <h1>Turbine System</h1>
+            <p>III B - PT Petrokimia Gresik</p>
+        </div>
+        <div class="menu-card" onclick="navigateTo('areaListScreen')">
+            <div class="menu-icon">📝</div>
+            <div><h3>Mulai Logsheet</h3><small>Input data operasional</small></div>
+        </div>
+        <div class="menu-card" onclick="openSettings()">
+            <div class="menu-icon">🛠️</div>
+            <div><h3>Pengaturan</h3><small>Konfigurasi URL</small></div>
+        </div>
+    </div>
+
+    <div id="areaListScreen" class="screen">
+        <div class="header-nav">
+            <button class="btn-outline" onclick="navigateTo('homeScreen')">⬅</button>
+            <h2>Area Logsheet</h2>
+            <div class="status-pill"><div class="dot" id="statusDot"></div><span id="statusText">Offline</span></div>
+        </div>
+        <div id="areaList"></div>
+        <button class="btn btn-primary" id="submitBtn" style="display:none;" onclick="sendToSheet()">🚀 KIRIM DATA KE CLOUD</button>
+    </div>
+
+    <div id="paramScreen" class="screen">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <span id="stepInfo" style="color: var(--accent);"></span>
+            <button class="btn-outline" onclick="navigateTo('areaListScreen')">Batal</button>
+        </div>
+        <p id="currentAreaName"></p>
+        <h2 id="labelInput"></h2>
+        <div class="input-wrapper">
+            <input type="text" id="valInput" inputmode="decimal" placeholder="0.0">
+            <div class="history-tag">Terakhir: <b id="prevValDisplay">--</b></div>
+            <div class="history-tag">Waktu Terakhir: <b id="lastTimeLabel">--:--</b></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveStep()">SIMPAN & LANJUT ➔</button>
+    </div>
+
+    <div id="settingsScreen" class="screen">
+        <h2>Configuration</h2>
+        <input type="text" id="gasUrlInput" class="main-input">
+        <button class="btn btn-primary" onclick="saveSettings()">Simpan Konfigurasi</button>
+        <button class="btn btn-outline" onclick="navigateTo('homeScreen')">Kembali</button>
+    </div>
+</div>
+
+<script>
+    // Pendaftaran Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
+    }
+
+    const AREAS = {
+        "Steam Inlet Turbine": ["MPS Inlet 30-TP-6101 PI-6114 (kg/cm2)", "MPS Inlet 30-TP-6101 TI-6153 (°C)", "MPS Inlet 30-TP-6101 PI-6116 (kg/cm2)", "LPS Extrac 30-TP-6101 PI-6123 (kg/cm2)", "Gland Steam TI-6156 (°C)", "MPS Inlet 30-TP-6101 PI-6108 (Kg/cm2)", "Exhaust Steam PI-6111 (kg/cm2)", "Gland Steam PI-6118 (Kg/cm2)"],
+        "Low Pressure Steam": ["LPS from U-6101 PI-6104 (kg/cm2)", "LPS from U-6101 TI-6102 (°C)", "LPS Header PI-6106 (Kg/cm2)", "LPS Header TI-6107 (°C)"],
+        "Lube Oil": ["Lube Oil 30-TK-6102 LI-6104 (%)", "Lube Oil 30-TK-6102 TI-6125 (°C)", "Lube Oil 30-C-6101 (On/Off)", "Lube Oil 30-EH-6102 (On/Off)", "Lube Oil Cartridge FI-6143 (%)", "Lube Oil Cartridge PI-6148 (mmH2O)", "Lube Oil Cartridge PI-6149 (mmH2O)", "Lube Oil PI-6145 (kg/cm2)", "Lube Oil E-6104 (A/B)", "Lube Oil TI-6127 (°C)", "Lube Oil FIL-6101 (A/B)", "Lube Oil PDI-6146 (Kg/cm2)", "Lube Oil PI-6143 (Kg/cm2)", "Lube Oil TI-6144 (°C)", "Lube Oil TI-6146 (°C)", "Lube Oil TI-6145 (°C)", "Lube Oil FG-6144 (%)", "Lube Oil FG-6146 (%)", "Lube Oil TI-6121 (°C)", "Lube Oil TI-6116 (°C)", "Lube Oil FG-6121 (%)", "Lube Oil FG-6116 (%)"],
+        "Control Oil": ["Control Oil 30-TK-6103 LI-6106 (%)", "Control Oil 30-TK-6103 TI-6128 (°C)", "Control Oil P-6106 (A/B)", "Control Oil FIL-6103 (A/B)", "Control Oil PI-6152 (Bar)"],
+        "Shaft Line": ["Jacking Oil 30-P-6105 PI-6158 (Bar)", "Jacking Oil 30-P-6105 PI-6161 (Bar)", "Electrical Turning Gear U-6103 (Remote/Running/Stop)", "EH-6101 (ON/OFF)"],
+        "Condenser 30-E-6102": ["LG-6102 (%)", "30-P-6101 (A/B)", "30-P-6101 Press Suction", "30-P-6101 Press Discharge", "30-P-6101 Load (amp)"],
+        "Ejector": ["J-6101 PI-6126 A (Kg/cm2)", "J-6101 PI-6127 B (Kg/cm2)", "J-6102 PI-6128 A (Kg/cm2)", "J-6102 PI-6129 B (Kg/cm2)", "J-6104 PI-6131 (Kg/cm2)", "J-6104 PI-6138 (Kg/cm2)", "PI-6172 (kg/cm2)", "LPS Extrac 30-TP-6101 TI-6155 (°C)", "from U-6102 TI-6104 (°C)"],
+        "Generator Cooling Water": ["Air Cooler PI-6124 A (Kg/cm2)", "Air Cooler PI-6124 B (Kg/cm2)", "Air Cooler TI-6113 A (°C)", "Air Cooler TI-6113 B (°C)", "Air Cooler PI-6125 A (Kg/cm2)", "Air Cooler PI-6125 B (Kg/cm2)", "Air Cooler TI-6114 A (°C)", "Air Cooler TI-6114 B (°C)"],
+        "Condenser Cooling Water": ["Condenser PI-6135 A (Kg/cm2)", "Condenser PI-6135 B (Kg/cm2)", "Condenser TI-6118 A (°C)", "Condenser TI-6118 B (°C)", "Condenser PI-6136 A (Kg/cm2)", "Condenser PI-6136 B (Kg/cm2)", "Condenser TI-6119 A (°C)", "Condenser TI-6119 B (°C)"],
+        "BFW System": ["Condensate Tank TK-6201 (%)", "Condensate Tank TI-6216 (°C)", "P-6202 (A/B)", "P-6202 Press Suction", "P-6202 Press Discharge", "P-6202 Load (amp)", "Deaerator LI-6202 (%)", "Deaerator TI-6201 (°C)", "30-P-6201 (A/B)", "30-P-6201 Press Suction", "30-P-6201 Press Discharge", "30-P-6201 Load (amp)", "30-C-6202 A (ON/OFF)", "30-C-6202 A (Ampere)", "30-C-6202 B (ON/OFF)", "30-C-6202 B (Ampere)", "30-C-6202 PCV-6216 (%)", "30-C-6202 PI-6107 (kg/cm2)", "Condensate Drum 30-D-6201 LI-6209 (%)", "Condensate Drum 30-D-6201 PI-6218 (kg/cm2)", "Condensate Drum 30-D-6201 TI-6215 (°C)"],
+        "Chemical Dosing": ["30-TK-6205 LI-6204 (%)", "30-TK-6205 30-P-6205 (A/B)", "30-TK-6205 Press Disch (kg/cm2)", "30-TK-6205 Stroke (%)", "30-TK-6206 LI-6206 (%)", "30-TK-6206 30-P-6206 (A/B)", "30-TK-6206 Press Disch (kg/cm2)", "30-TK-6206 Stroke (%)", "30-TK-6207 LI-6208 (%)", "30-TK-6207 30-P-6207 (A/B)", "30-TK-6207 Press Disch (kg/cm2)", "30-TK-6207 Stroke (%)"]
+    };
+
+    const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbx3hM7m8_yBkbOTz3IN0lCTCFrDyGcNnTwM7RG5P4Wbmna5i2ldlbrhlijj4xl_Yhi_/exec";
+    let GAS_URL = localStorage.getItem('gas_url_custom') || DEFAULT_URL;
+    let lastData = {};
+    let currentInput = JSON.parse(localStorage.getItem('draft_turbine')) || {};
+    let activeArea = "";
+    let activeIdx = 0;
+
+    window.onload = () => { renderMenu(); };
+
+    function navigateTo(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(id === 'areaListScreen') { fetchLastData(); }
+    }
+
+    function fetchLastData() {
+        if(GAS_URL.includes("GANTI_DENGAN")) { document.getElementById('loader').style.display = 'none'; return; }
+
+        const timeout = setTimeout(() => {
+            document.getElementById('loader').style.display = 'none';
+            renderMenu();
+        }, 5000); 
+
+        const cb = 'jsonp_' + Date.now();
+        const s = document.createElement('script');
+        
+        window[cb] = (d) => { 
+            clearTimeout(timeout);
+            lastData = d; 
+            document.getElementById('statusDot').classList.add('online');
+            document.getElementById('statusText').innerText = "Online";
+            delete window[cb]; s.remove();
+            renderMenu();
+        };
+
+        s.src = `${GAS_URL}?callback=${cb}`;
+        s.onerror = () => { clearTimeout(timeout); renderMenu(); };
+        document.body.appendChild(s);
+    }
+
+    function renderMenu() {
+        document.getElementById('loader').style.display = 'none';
+        const list = document.getElementById('areaList');
+        list.innerHTML = "";
+        let hasDraft = false;
+        Object.keys(AREAS).forEach(a => {
+            const count = currentInput[a] ? Object.keys(currentInput[a]).length : 0;
+            if(count > 0) hasDraft = true;
+            list.innerHTML += `
+                <div class="area-item ${count === AREAS[a].length ? 'done' : ''}" onclick="openArea('${a}')">
+                    <div><b>${a}</b><small>${count} dari ${AREAS[a].length} data terisi</small></div>
+                    <div style="font-size: 18px;">${count === AREAS[a].length ? '✅' : '❯'}</div>
+                </div>`;
+        });
+        document.getElementById('submitBtn').style.display = hasDraft ? 'block' : 'none';
+    }
+
+    function openArea(a) { activeArea = a; activeIdx = 0; navigateTo('paramScreen'); document.getElementById('currentAreaName').innerText = a; showStep(); }
+
+    function showStep() {
+        const label = AREAS[activeArea][activeIdx];
+        document.getElementById('stepInfo').innerText = `STEP ${activeIdx + 1} / ${AREAS[activeArea].length}`;
+        document.getElementById('labelInput').innerText = label;
+        document.getElementById('lastTimeLabel').innerText = lastData._lastTime || "--:--";
+        document.getElementById('prevValDisplay').innerText = lastData[label] || "--";
+        document.getElementById('valInput').value = (currentInput[activeArea] && currentInput[activeArea][label]) || "";
+        setTimeout(() => document.getElementById('valInput').focus(), 200);
+    }
+
+    function saveStep() {
+        const val = document.getElementById('valInput').value.trim();
+        if(val !== "") {
+            if(!currentInput[activeArea]) currentInput[activeArea] = {};
+            currentInput[activeArea][AREAS[activeArea][activeIdx]] = val;
+            localStorage.setItem('draft_turbine', JSON.stringify(currentInput));
+        }
+        if(activeIdx < AREAS[activeArea].length - 1) { activeIdx++; showStep(); } 
+        else { navigateTo('areaListScreen'); }
+    }
+
+    async function sendToSheet() {
+        document.getElementById('loader').style.display = 'flex';
+        const finalData = {};
+        Object.values(currentInput).forEach(obj => Object.assign(finalData, obj));
+        try {
+            await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(finalData) });
+            alert("✓ Sukses! Data berhasil dikirim.");
+            currentInput = {}; localStorage.removeItem('draft_turbine'); navigateTo('homeScreen');
+        } catch (e) { alert("Gagal mengirim! Cek koneksi."); }
+        document.getElementById('loader').style.display = 'none';
+    }
+
+    function openSettings() { navigateTo('settingsScreen'); document.getElementById('gasUrlInput').value = GAS_URL; }
+    function saveSettings() {
+        const url = document.getElementById('gasUrlInput').value.trim();
+        if(url) { localStorage.setItem('gas_url_custom', url); GAS_URL = url; alert("Sistem Diperbarui!"); navigateTo('homeScreen'); }
+    }
+</script>
+</body>
+</html>
