@@ -1,3 +1,4 @@
+/* --- Root Variables --- */
 :root {
     --bg-color: #f8fafc;
     --card-bg: #ffffff;
@@ -8,6 +9,7 @@
     --success: #10b981;
 }
 
+/* --- Layout Dasar --- */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
@@ -26,14 +28,18 @@ body {
     box-sizing: border-box;
 }
 
-/* Screen visibility */
+/* --- Screens --- */
 .screen { display: none; }
 .screen.active { display: block; }
 
-/* Header & Nav */
-.header-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; }
+/* --- Components --- */
+.header-nav { 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    margin-bottom: 25px; 
+}
 
-/* Area Item (The "Card" Style) */
 .area-item {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -45,6 +51,7 @@ body {
     align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     cursor: pointer;
+    transition: background 0.2s;
 }
 
 .area-item:active { background: #f1f5f9; }
@@ -58,7 +65,7 @@ body {
     font-size: 14px;
 }
 
-/* Input Fields */
+/* --- Input & Buttons --- */
 .input-wrapper {
     background: var(--card-bg);
     padding: 20px;
@@ -67,7 +74,7 @@ body {
     margin: 20px 0;
 }
 
-input[type="text"] {
+input[type="text"], .main-input {
     width: 100%;
     padding: 15px;
     font-size: 16px;
@@ -78,7 +85,6 @@ input[type="text"] {
     background: #fdfdfd;
 }
 
-/* Buttons */
 .btn {
     width: 100%;
     padding: 16px;
@@ -90,17 +96,42 @@ input[type="text"] {
 }
 
 .btn-primary { background: var(--primary); color: white; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
 
-/* Loader Overlay */
+/* --- Custom Alert Overlay --- */
+.custom-alert {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+.custom-alert.hidden { display: none; }
+
+.alert-content {
+    background: white; padding: 30px; border-radius: 24px;
+    width: 85%; max-width: 320px; text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    animation: popupIn 0.3s ease-out;
+}
+
+@keyframes popupIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.alert-content button {
+    margin-top: 20px; width: 100%; padding: 14px;
+    background: var(--primary); color: white; border: none;
+    border-radius: 12px; font-weight: 700; cursor: pointer;
+}
+
+/* --- Loader Overlay --- */
 .loader-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(255, 255, 255, 0.95);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
+    display: flex; flex-direction: column; 
+    justify-content: center; align-items: center; z-index: 9999;
 }
 
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
