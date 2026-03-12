@@ -1,4 +1,4 @@
-const CACHE_NAME = 'turbine-v6-cache'; // Ubah versi setiap ada update besar
+const CACHE_NAME = 'turbine-v7-cache'; // Ubah versi setiap ada update besar
 const assets = ['./', './index.html', './style.css', './manifest.json'];
 
 self.addEventListener('install', e => {
