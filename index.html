@@ -3,65 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f172a">
-    <title>Turbine Logsheet Pro - PT Petrokimia Gresik</title>
-    <link rel="stylesheet" href="style.css?v=1.0">
+    <meta name="theme-color" content="#f8fafc">
+    <title>Turbine Logsheet Pro</title>
+    <link rel="stylesheet" href="style.css?v=1.1">
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="data:,"> </head>
+    <link rel="icon" href="data:,">
+</head>
 <body>
 
 <div id="loader" class="loader-overlay">
-    <div style="width: 45px; height: 45px; border: 4px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-    <p style="margin-top: 20px; font-weight: 500; color: white;">Sinkronisasi Data...</p>
+    <div style="width: 45px; height: 45px; border: 4px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+    <p style="margin-top: 20px; font-weight: 500;">Sinkronisasi Data...</p>
+</div>
+
+<div id="customAlert" class="custom-alert hidden">
+    <div class="alert-content">
+        <div style="font-size: 40px; margin-bottom: 10px;">✅</div>
+        <p id="alertMessage" style="font-weight: 600;">Data berhasil dikirim!</p>
+        <button onclick="closeAlert()">Oke</button>
+    </div>
 </div>
 
 <div class="app-container">
     <div id="homeScreen" class="screen active">
-        <div class="home-hero">
-            <div class="logo-area">⚙️</div>
+        <div class="home-hero" style="text-align: center; padding: 40px 0;">
+            <div style="font-size: 50px; margin-bottom: 10px;">⚙️</div>
             <h1>Turbine System</h1>
-            <p>III B - PT Petrokimia Gresik</p>
+            <p style="color: var(--text-muted);">III B - PT Petrokimia Gresik</p>
         </div>
-        <div class="menu-card" onclick="navigateTo('areaListScreen')">
-            <div class="menu-icon">📝</div>
-            <div><h3>Mulai Logsheet</h3><small>Input data operasional</small></div>
+        <div class="area-item" onclick="navigateTo('areaListScreen')">
+            <div><b>Mulai Logsheet</b><br><small>Input data operasional</small></div>
+            <div>❯</div>
         </div>
-        <div class="menu-card" onclick="openSettings()">
-            <div class="menu-icon">🛠️</div>
-            <div><h3>Pengaturan</h3><small>Konfigurasi URL</small></div>
+        <div class="area-item" onclick="openSettings()">
+            <div><b>Pengaturan</b><br><small>Konfigurasi URL</small></div>
+            <div>🛠️</div>
         </div>
     </div>
 
     <div id="areaListScreen" class="screen">
         <div class="header-nav">
-            <button class="btn-outline" onclick="navigateTo('homeScreen')">⬅</button>
-            <h2>Area Logsheet</h2>
-            <div class="status-pill"><div class="dot" id="statusDot"></div><span id="statusText">Offline</span></div>
+            <button class="btn btn-outline" style="width:auto;" onclick="navigateTo('homeScreen')">⬅</button>
+            <h2 style="margin:0;">Logsheet</h2>
+            <div class="badge" id="statusPill">Offline</div>
         </div>
         <div id="areaList"></div>
-        <button class="btn btn-primary" id="submitBtn" style="display:none;" onclick="sendToSheet()">🚀 KIRIM DATA KE CLOUD</button>
+        <button class="btn btn-primary" id="submitBtn" style="display:none; margin-top:20px;" onclick="sendToSheet()">🚀 KIRIM DATA</button>
     </div>
 
     <div id="paramScreen" class="screen">
-        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-            <span id="stepInfo" style="color: var(--accent);"></span>
-            <button class="btn-outline" onclick="navigateTo('areaListScreen')">Batal</button>
+        <div class="header-nav">
+            <span id="stepInfo" style="color: var(--primary); font-weight:bold;"></span>
+            <button class="btn btn-outline" style="width:auto; padding:8px 15px;" onclick="navigateTo('areaListScreen')">Batal</button>
         </div>
-        <p id="currentAreaName"></p>
-        <h2 id="labelInput"></h2>
+        <p id="currentAreaName" style="color:var(--text-muted)"></p>
+        <h2 id="labelInput" style="margin-bottom:20px;"></h2>
         <div class="input-wrapper">
             <input type="text" id="valInput" inputmode="decimal" placeholder="0.0">
-            <div class="history-tag">Terakhir: <b id="prevValDisplay">--</b></div>
-            <div class="history-tag">Waktu Terakhir: <b id="lastTimeLabel">--:--</b></div>
+            <div style="margin-top:15px; font-size:14px; color:var(--text-muted);">
+                Terakhir: <b style="color:var(--text-main)" id="prevValDisplay">--</b><br>
+                Waktu: <b style="color:var(--text-main)" id="lastTimeLabel">--:--</b>
+            </div>
         </div>
         <button class="btn btn-primary" onclick="saveStep()">SIMPAN & LANJUT ➔</button>
     </div>
 
     <div id="settingsScreen" class="screen">
         <h2>Configuration</h2>
-        <input type="text" id="gasUrlInput" class="main-input">
-        <button class="btn btn-primary" onclick="saveSettings()">Simpan Konfigurasi</button>
-        <button class="btn btn-outline" onclick="navigateTo('homeScreen')">Kembali</button>
+        <input type="text" id="gasUrlInput" class="main-input" placeholder="URL Google Script...">
+        <button class="btn btn-primary" style="margin-top:15px;" onclick="saveSettings()">Simpan Konfigurasi</button>
+        <button class="btn btn-outline" style="margin-top:10px;" onclick="navigateTo('homeScreen')">Kembali</button>
     </div>
 </div>
 
@@ -87,39 +98,24 @@
 
     const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbx3hM7m8_yBkbOTz3IN0lCTCFrDyGcNnTwM7RG5P4Wbmna5i2ldlbrhlijj4xl_Yhi_/exec";
     let GAS_URL = localStorage.getItem('gas_url_custom') || DEFAULT_URL;
-    let lastData = {};
-    let currentInput = JSON.parse(localStorage.getItem('draft_turbine')) || {};
-    let activeArea = "";
-    let activeIdx = 0;
+    let lastData = {}, currentInput = JSON.parse(localStorage.getItem('draft_turbine')) || {}, activeArea = "", activeIdx = 0;
 
     window.onload = () => { renderMenu(); };
+
+    function showCustomAlert(msg) { document.getElementById('alertMessage').innerText = msg; document.getElementById('customAlert').classList.remove('hidden'); }
+    function closeAlert() { document.getElementById('customAlert').classList.add('hidden'); }
 
     function navigateTo(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        if(id === 'areaListScreen') { fetchLastData(); }
+        if(id === 'areaListScreen') fetchLastData();
     }
 
     function fetchLastData() {
-        if(GAS_URL.includes("GANTI_DENGAN")) { document.getElementById('loader').style.display = 'none'; return; }
-
-        const timeout = setTimeout(() => {
-            document.getElementById('loader').style.display = 'none';
-            renderMenu();
-        }, 5000); 
-
+        const timeout = setTimeout(() => { document.getElementById('loader').style.display = 'none'; renderMenu(); }, 5000); 
         const cb = 'jsonp_' + Date.now();
         const s = document.createElement('script');
-        
-        window[cb] = (d) => { 
-            clearTimeout(timeout);
-            lastData = d; 
-            document.getElementById('statusDot').classList.add('online');
-            document.getElementById('statusText').innerText = "Online";
-            delete window[cb]; s.remove();
-            renderMenu();
-        };
-
+        window[cb] = (d) => { clearTimeout(timeout); lastData = d; document.getElementById('statusPill').innerText = "Online"; document.getElementById('statusPill').style.background = "#dcfce7"; document.getElementById('statusPill').style.color = "#166534"; delete window[cb]; s.remove(); renderMenu(); };
         s.src = `${GAS_URL}?callback=${cb}`;
         s.onerror = () => { clearTimeout(timeout); renderMenu(); };
         document.body.appendChild(s);
@@ -128,35 +124,27 @@
     function renderMenu() {
         document.getElementById('loader').style.display = 'none';
         const list = document.getElementById('areaList');
-        list.innerHTML = "";
-        let hasDraft = false;
+        list.innerHTML = `<h3 style="margin-bottom:20px;">⚙️ Pilih Area TURBINE</h3>`;
         Object.keys(AREAS).forEach(a => {
             const count = currentInput[a] ? Object.keys(currentInput[a]).length : 0;
-            if(count > 0) hasDraft = true;
-            list.innerHTML += `
-                <div class="area-item ${count === AREAS[a].length ? 'done' : ''}" onclick="openArea('${a}')">
-                    <div><b>${a}</b><small>${count} dari ${AREAS[a].length} data terisi</small></div>
-                    <div style="font-size: 18px;">${count === AREAS[a].length ? '✅' : '❯'}</div>
-                </div>`;
+            list.innerHTML += `<div class="area-item" onclick="openArea('${a}')"><div><b>${a}</b><br><small>${count}/${AREAS[a].length} diisi</small></div><div class="badge">${count}/${AREAS[a].length}</div></div>`;
         });
-        document.getElementById('submitBtn').style.display = hasDraft ? 'block' : 'none';
+        document.getElementById('submitBtn').style.display = Object.keys(currentInput).length > 0 ? 'block' : 'none';
     }
 
     function openArea(a) { activeArea = a; activeIdx = 0; navigateTo('paramScreen'); document.getElementById('currentAreaName').innerText = a; showStep(); }
-
     function showStep() {
-        const label = AREAS[activeArea][activeIdx];
         document.getElementById('stepInfo').innerText = `STEP ${activeIdx + 1} / ${AREAS[activeArea].length}`;
-        document.getElementById('labelInput').innerText = label;
+        document.getElementById('labelInput').innerText = AREAS[activeArea][activeIdx];
         document.getElementById('lastTimeLabel').innerText = lastData._lastTime || "--:--";
-        document.getElementById('prevValDisplay').innerText = lastData[label] || "--";
-        document.getElementById('valInput').value = (currentInput[activeArea] && currentInput[activeArea][label]) || "";
+        document.getElementById('prevValDisplay').innerText = lastData[AREAS[activeArea][activeIdx]] || "--";
+        document.getElementById('valInput').value = (currentInput[activeArea] && currentInput[activeArea][AREAS[activeArea][activeIdx]]) || "";
         setTimeout(() => document.getElementById('valInput').focus(), 200);
     }
 
     function saveStep() {
         const val = document.getElementById('valInput').value.trim();
-        if(val !== "") {
+        if(val) {
             if(!currentInput[activeArea]) currentInput[activeArea] = {};
             currentInput[activeArea][AREAS[activeArea][activeIdx]] = val;
             localStorage.setItem('draft_turbine', JSON.stringify(currentInput));
@@ -167,20 +155,19 @@
 
     async function sendToSheet() {
         document.getElementById('loader').style.display = 'flex';
-        const finalData = {};
-        Object.values(currentInput).forEach(obj => Object.assign(finalData, obj));
+        const finalData = {}; Object.values(currentInput).forEach(obj => Object.assign(finalData, obj));
         try {
             await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(finalData) });
-            alert("✓ Sukses! Data berhasil dikirim.");
+            showCustomAlert("✓ Sukses! Data dikirim.");
             currentInput = {}; localStorage.removeItem('draft_turbine'); navigateTo('homeScreen');
-        } catch (e) { alert("Gagal mengirim! Cek koneksi."); }
+        } catch (e) { showCustomAlert("Gagal mengirim! Cek koneksi."); }
         document.getElementById('loader').style.display = 'none';
     }
 
     function openSettings() { navigateTo('settingsScreen'); document.getElementById('gasUrlInput').value = GAS_URL; }
     function saveSettings() {
         const url = document.getElementById('gasUrlInput').value.trim();
-        if(url) { localStorage.setItem('gas_url_custom', url); GAS_URL = url; alert("Sistem Diperbarui!"); navigateTo('homeScreen'); }
+        if(url) { localStorage.setItem('gas_url_custom', url); GAS_URL = url; showCustomAlert("Sistem Diperbarui!"); navigateTo('homeScreen'); }
     }
 </script>
 </body>
