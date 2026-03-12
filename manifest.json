@@ -1,17 +1,24 @@
 {
-  "name": "Logsheet Turbine III B",
-  "short_name": "TurbineLog",
-  "description": "Aplikasi Logsheet Operasional Turbin PT Petrokimia Gresik",
-  "start_url": "index.html",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#3b82f6",
-  "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/5971/5971591.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "name": "Logsheet Turbine III B",
+  "short_name": "TurbineLog",
+  "description": "Aplikasi Logsheet Operasional Turbin PT Petrokimia Gresik",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5971/5971591.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5971/5971591.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
