@@ -1,19 +1,19 @@
 // ============================================
-// TURBINE LOGSHEET PRO - APP.JS FINAL
-// Version: 2.1.0
+// TURBINE LOGSHEET PRO - APP.JS FINAL FIXED
+// Version: 2.1.1
 // ============================================
 
 // ============================================
 // CONFIGURATION & CONSTANTS
 // ============================================
-const APP_VERSION = '2.0.7';
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz7U2Uu3JzASLs40vyqjmUziSdvwOCOiNu7e4qes1B0Ot3o1rIzVrPsdPCkcl3w00twFg/exec"; // GANTI DENGAN URL DEPLOYMENT ANDA
+const APP_VERSION = '2.1.1';
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz7U2Uu3JzASLs40vyqjmUziSdvwOCOiNu7e4qes1B0Ot3o1rIzVrPsdPCkcl3w00twFg/exec";
 
 const AUTH_CONFIG = {
     SESSION_KEY: 'turbine_session_v2',
     USER_KEY: 'turbine_user_v2',
-    SESSION_DURATION: 8 * 60 * 60 * 1000, // 8 jam
-    REMEMBER_ME_DURATION: 30 * 24 * 60 * 60 * 1000 // 30 hari
+    SESSION_DURATION: 8 * 60 * 60 * 1000,
+    REMEMBER_ME_DURATION: 30 * 24 * 60 * 60 * 1000
 };
 
 const DRAFT_KEYS = {
@@ -27,12 +27,10 @@ const DRAFT_KEYS = {
     BALANCING_HISTORY: 'balancing_history_v2'
 };
 
-// User Management Storage Keys
 const USER_STORAGE_KEY = 'turbine_users_v2';
 const USER_SYNC_TIME = 'turbine_users_sync_time';
 const USER_ACTIVITY_LOG = 'turbine_activity_log';
 
-// Default Users (Fallback)
 const USER_CREDENTIALS = {
     'admin': { 
         password: 'admin123', 
@@ -273,7 +271,6 @@ if ('serviceWorker' in navigator) {
 function initUserStorage() {
     const stored = localStorage.getItem(USER_STORAGE_KEY);
     if (!stored) {
-        // Convert hardcoded to storage format
         const defaultUsers = {};
         Object.entries(USER_CREDENTIALS).forEach(([username, data]) => {
             defaultUsers[username] = {
@@ -284,101 +281,40 @@ function initUserStorage() {
             };
         });
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(defaultUsers));
+        console.log('User storage initialized with defaults');
     }
 }
 
 function getAllUsers() {
     initUserStorage();
-    const stored = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
-    return Object.entries(stored)
-        .map(([username, data]) => ({ username, ...data }))
-        .filter(u => u.status === 'Active');
-}
-
-async function syncUsersFromCloud(force = false) {
-    const lastSync = parseInt(localStorage.getItem(USER_SYNC_TIME) || '0');
-    const now = Date.now();
-    
-    if (!force && (now - lastSync) < (30 * 60 * 1000)) {
-        console.log('Using cached users');
-        return getAllUsers();
-    }
-    
     try {
-        showCustomAlert('Sinkronisasi user...', 'info');
-        
-        const callbackName = 'userSyncCallback_' + Date.now();
-        
-        return new Promise((resolve) => {
-            window[callbackName] = (response) => {
-                delete window[callbackName];
-                
-                if (response.success && response.users) {
-                    // Merge dengan hardcoded (hardcoded priority untuk default)
-                    const merged = {};
-                    Object.entries(USER_CREDENTIALS).forEach(([username, data]) => {
-                        merged[username] = {
-                            ...data,
-                            status: 'Active',
-                            isDefault: true
-                        };
-                    });
-                    
-                    // Override dengan cloud users
-                    response.users.forEach(u => {
-                        if (!merged[u.username]) {
-                            merged[u.username] = {
-                                password: u.password, // Akan diisi jika pakai getUsersFull
-                                role: u.role,
-                                name: u.name,
-                                department: u.department,
-                                status: u.status,
-                                isDefault: false
-                            };
-                        }
-                    });
-                    
-                    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(merged));
-                    localStorage.setItem(USER_SYNC_TIME, now.toString());
-                    
-                    showCustomAlert(`✓ ${response.users.length} user tersinkronisasi`, 'success');
-                    resolve(Object.entries(merged).map(([username, data]) => ({ username, ...data })));
-                } else {
-                    resolve(getAllUsers());
-                }
-            };
-            
-            const script = document.createElement('script');
-            script.src = `${GAS_URL}?action=getUsers&callback=${callbackName}&t=${now}`;
-            script.onerror = () => {
-                delete window[callbackName];
-                resolve(getAllUsers());
-            };
-            
-            setTimeout(() => {
-                if (window[callbackName]) {
-                    delete window[callbackName];
-                    resolve(getAllUsers());
-                }
-            }, 5000);
-            
-            document.body.appendChild(script);
-        });
-    } catch (err) {
-        console.error('Sync error:', err);
-        return getAllUsers();
+        const stored = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
+        return Object.entries(stored)
+            .map(([username, data]) => ({ username, ...data }))
+            .filter(u => u.status === 'Active');
+    } catch (e) {
+        console.error('Error parsing users:', e);
+        return [];
     }
 }
 
 function validateUserLocal(username, password) {
+    console.log('Validating user:', username);
     if (!username || !password) return { valid: false, message: 'Data tidak lengkap' };
     
     const users = getAllUsers();
     const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.status === 'Active');
     
-    if (!user) return { valid: false, message: 'Username atau password salah' };
-    if (user.password !== password) return { valid: false, message: 'Username atau password salah' };
+    if (!user) {
+        console.log('User not found');
+        return { valid: false, message: 'Username atau password salah' };
+    }
+    if (user.password !== password) {
+        console.log('Password mismatch');
+        return { valid: false, message: 'Username atau password salah' };
+    }
     
+    console.log('User validated:', user.name);
     return {
         valid: true,
         username: user.username,
@@ -387,122 +323,6 @@ function validateUserLocal(username, password) {
         department: user.department,
         isDefault: user.isDefault || false
     };
-}
-
-async function addUser(userData) {
-    if (!currentUser || currentUser.role !== 'admin') {
-        showCustomAlert('Hanya admin yang dapat menambah user', 'error');
-        return false;
-    }
-    
-    const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
-    
-    if (users[userData.username.toLowerCase()]) {
-        showCustomAlert('Username sudah terdaftar', 'error');
-        return false;
-    }
-    
-    if (!userData.username || !userData.password || !userData.name) {
-        showCustomAlert('Semua field wajib diisi', 'error');
-        return false;
-    }
-    
-    if (userData.password.length < 6) {
-        showCustomAlert('Password minimal 6 karakter', 'error');
-        return false;
-    }
-    
-    users[userData.username.toLowerCase()] = {
-        password: userData.password,
-        role: userData.role || 'operator',
-        name: userData.name,
-        department: userData.department || 'Unit Utilitas 3B',
-        status: 'Active',
-        createdAt: new Date().toISOString(),
-        createdBy: currentUser.name,
-        isDefault: false
-    };
-    
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
-    logActivity('USER_ADDED', userData.username, `Added by ${currentUser.name}`);
-    
-    // Sync to GAS
-    if (navigator.onLine) {
-        try {
-            await fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'USER_ADD',
-                    adminUsername: currentUser.username,
-                    adminPassword: getCurrentUserPassword(),
-                    ...userData
-                })
-            });
-        } catch (e) { console.log('GAS sync failed'); }
-    }
-    
-    return true;
-}
-
-function deleteUser(username) {
-    if (!currentUser || currentUser.role !== 'admin') {
-        showCustomAlert('Unauthorized', 'error');
-        return false;
-    }
-    
-    const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
-    const userKey = username.toLowerCase();
-    
-    if (users[userKey]?.isDefault) {
-        showCustomAlert('User bawaan sistem tidak dapat dihapus', 'error');
-        return false;
-    }
-    
-    if (userKey === currentUser.username.toLowerCase()) {
-        showCustomAlert('Anda tidak dapat menghapus diri sendiri', 'error');
-        return false;
-    }
-    
-    users[userKey].status = 'Inactive';
-    users[userKey].updatedAt = new Date().toISOString();
-    users[userKey].updatedBy = currentUser.name;
-    
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
-    logActivity('USER_DELETED', username, `Deleted by ${currentUser.name}`);
-    
-    // Sync to GAS
-    if (navigator.onLine) {
-        fetch(GAS_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                type: 'USER_DELETE',
-                adminUsername: currentUser.username,
-                adminPassword: getCurrentUserPassword(),
-                username: username
-            })
-        }).catch(() => {});
-    }
-    
-    return true;
-}
-
-function logActivity(action, username, details) {
-    try {
-        const logs = JSON.parse(localStorage.getItem(USER_ACTIVITY_LOG) || '[]');
-        logs.push({
-            timestamp: new Date().toISOString(),
-            action,
-            username,
-            details,
-            device: navigator.userAgent
-        });
-        if (logs.length > 100) logs.shift();
-        localStorage.setItem(USER_ACTIVITY_LOG, JSON.stringify(logs));
-    } catch (e) {}
 }
 
 function getCurrentUserPassword() {
@@ -520,6 +340,23 @@ function getUserStats() {
     };
 }
 
+function logActivity(action, username, details) {
+    try {
+        const logs = JSON.parse(localStorage.getItem(USER_ACTIVITY_LOG) || '[]');
+        logs.push({
+            timestamp: new Date().toISOString(),
+            action,
+            username,
+            details,
+            device: navigator.userAgent
+        });
+        if (logs.length > 100) logs.shift();
+        localStorage.setItem(USER_ACTIVITY_LOG, JSON.stringify(logs));
+    } catch (e) {
+        console.error('Log activity error:', e);
+    }
+}
+
 // ============================================
 // AUTHENTICATION FUNCTIONS
 // ============================================
@@ -528,6 +365,8 @@ function togglePasswordVisibility() {
     const passwordInput = document.getElementById('operatorPassword');
     const eyeIcon = document.getElementById('eyeIcon');
     const eyeOffIcon = document.getElementById('eyeOffIcon');
+    
+    if (!passwordInput) return;
     
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
@@ -563,7 +402,9 @@ function saveSession(user, password, rememberMe = false) {
     try {
         localStorage.setItem(AUTH_CONFIG.SESSION_KEY, JSON.stringify(session));
         localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(user));
-    } catch (e) {}
+    } catch (e) {
+        console.error('Save session error:', e);
+    }
 }
 
 function isSessionValid(session) {
@@ -591,7 +432,6 @@ function initAuth() {
             navigateTo('homeScreen');
         }
         
-        // Setup admin menu jika admin
         if (currentUser.role === 'admin') {
             setTimeout(setupAdminMenu, 500);
         }
@@ -629,9 +469,6 @@ async function loginOperator() {
         passwordInput.focus();
         return;
     }
-    
-    // Background sync users
-    syncUsersFromCloud(false).catch(console.error);
     
     const userSession = {
         name: validation.name,
@@ -765,7 +602,7 @@ function loadUserStats() {
 }
 
 // ============================================
-// USER MANAGEMENT UI - CLEAN VERSION
+// USER MANAGEMENT UI - FIXED VERSION
 // ============================================
 
 function setupAdminMenu() {
@@ -776,7 +613,6 @@ function setupAdminMenu() {
         return;
     }
     
-    // Hapus tombol lama jika ada
     const oldBtn = document.getElementById('menuUserManagement');
     if (oldBtn) oldBtn.remove();
     
@@ -809,7 +645,6 @@ function setupAdminMenu() {
         </div>
     `;
     
-    // Insert sebelum menu terakhir (balancing)
     menuGrid.insertBefore(btn, menuGrid.lastElementChild);
     console.log('Admin menu button added');
 }
@@ -830,10 +665,15 @@ function openAddUserModal() {
     }
     
     // Reset form
-    document.getElementById('newUsername').value = '';
-    document.getElementById('newPassword').value = '';
-    document.getElementById('newName').value = '';
-    document.getElementById('newRole').value = 'operator';
+    const usernameEl = document.getElementById('newUsername');
+    const passwordEl = document.getElementById('newPassword');
+    const nameEl = document.getElementById('newName');
+    const roleEl = document.getElementById('newRole');
+    
+    if (usernameEl) usernameEl.value = '';
+    if (passwordEl) passwordEl.value = '';
+    if (nameEl) nameEl.value = '';
+    if (roleEl) roleEl.value = 'operator';
     
     const errorDiv = document.getElementById('addUserError');
     if (errorDiv) {
@@ -843,18 +683,20 @@ function openAddUserModal() {
     
     // Show modal
     modal.classList.remove('hidden');
+    modal.style.display = 'flex';
     
-    // Focus username
     setTimeout(() => {
-        document.getElementById('newUsername').focus();
+        if (usernameEl) usernameEl.focus();
     }, 100);
 }
 
 function closeAddUserModal() {
     const modal = document.getElementById('addUserModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
     
-    // Reset form fields
     ['newUsername', 'newPassword', 'newName'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -868,91 +710,134 @@ function closeAddUserModal() {
 }
 
 async function submitNewUser() {
-    console.log('Submitting new user...');
+    console.log('=== SUBMIT NEW USER START ===');
     
-    const errorDiv = document.getElementById('addUserError');
-    if (errorDiv) errorDiv.style.display = 'none';
-    
-    // Validasi admin session
-    if (!currentUser || currentUser.role !== 'admin') {
-        showCustomAlert('Sesi admin tidak valid!', 'error');
-        return;
-    }
-    
-    // Get values
-    const username = document.getElementById('newUsername').value.trim().toLowerCase();
-    const password = document.getElementById('newPassword').value;
-    const name = document.getElementById('newName').value.trim();
-    const role = document.getElementById('newRole').value;
-    
-    console.log('Form data:', { username, name, role, passwordLength: password.length });
-    
-    // Validation
-    if (!username || !password || !name) {
-        showError('Semua field wajib diisi!');
-        return;
-    }
-    
-    if (username.length < 3) {
-        showError('Username minimal 3 karakter!');
-        return;
-    }
-    
-    if (password.length < 6) {
-        showError('Password minimal 6 karakter!');
-        return;
-    }
-    
-    // Check if exists
-    const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
-    if (users[username]) {
-        showError('Username sudah terdaftar!');
-        return;
-    }
-    
-    // Create user object
-    const newUser = {
-        password: password,
-        role: role,
-        name: name,
-        department: 'Unit Utilitas 3B',
-        status: 'Active',
-        createdAt: new Date().toISOString(),
-        createdBy: currentUser.name,
-        isDefault: false
-    };
-    
-    console.log('Creating user:', newUser);
-    
-    // Save to localStorage
-    users[username] = newUser;
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
-    
-    // Log activity
-    logActivity('USER_ADDED', username, `Added by ${currentUser.name}`);
-    
-    // Sync to cloud (optional - don't block)
-    if (navigator.onLine) {
+    try {
+        // 1. Validasi session admin
+        if (!currentUser || currentUser.role !== 'admin') {
+            console.error('Not admin or no session');
+            showCustomAlert('Sesi admin tidak valid!', 'error');
+            return;
+        }
+        console.log('Admin session valid:', currentUser.username);
+        
+        // 2. Get elements
+        const usernameEl = document.getElementById('newUsername');
+        const passwordEl = document.getElementById('newPassword');
+        const nameEl = document.getElementById('newName');
+        const roleEl = document.getElementById('newRole');
+        const errorDiv = document.getElementById('addUserError');
+        
+        if (!usernameEl || !passwordEl || !nameEl || !roleEl) {
+            console.error('Form elements not found');
+            showCustomAlert('Error: Form tidak lengkap', 'error');
+            return;
+        }
+        
+        // 3. Get values
+        const username = usernameEl.value.trim().toLowerCase();
+        const password = passwordEl.value;
+        const name = nameEl.value.trim();
+        const role = roleEl.value;
+        
+        console.log('Form data:', { username, name, role, passwordLength: password?.length });
+        
+        // 4. Validation
+        if (!username || !password || !name) {
+            showError('Semua field wajib diisi!');
+            return;
+        }
+        
+        if (username.length < 3) {
+            showError('Username minimal 3 karakter!');
+            return;
+        }
+        
+        if (password.length < 6) {
+            showError('Password minimal 6 karakter!');
+            return;
+        }
+        
+        // 5. Check if exists
+        console.log('Checking existing users...');
+        let users = {};
         try {
-            fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'USER_ADD',
-                    adminUsername: currentUser.username,
-                    adminPassword: getCurrentUserPassword(),
-                    username, password, name, role, department: 'Unit Utilitas 3B'
-                })
-            }).catch(e => console.log('Cloud sync failed:', e));
-        } catch (e) {}
+            const stored = localStorage.getItem(USER_STORAGE_KEY);
+            users = stored ? JSON.parse(stored) : {};
+        } catch (e) {
+            console.error('Error reading users:', e);
+            users = {};
+        }
+        
+        if (users[username]) {
+            showError('Username sudah terdaftar!');
+            return;
+        }
+        
+        // 6. Create user object
+        const newUser = {
+            password: password,
+            role: role,
+            name: name,
+            department: 'Unit Utilitas 3B',
+            status: 'Active',
+            createdAt: new Date().toISOString(),
+            createdBy: currentUser.name,
+            isDefault: false
+        };
+        
+        console.log('Creating user object:', newUser);
+        
+        // 7. Save to localStorage
+        users[username] = newUser;
+        try {
+            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+            console.log('User saved to localStorage');
+        } catch (e) {
+            console.error('Error saving to localStorage:', e);
+            showError('Gagal menyimpan data lokal: ' + e.message);
+            return;
+        }
+        
+        // 8. Log activity
+        logActivity('USER_ADDED', username, `Added by ${currentUser.name}`);
+        
+        // 9. Sync to cloud (async, don't block)
+        if (navigator.onLine) {
+            try {
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'USER_ADD',
+                        adminUsername: currentUser.username,
+                        adminPassword: getCurrentUserPassword(),
+                        username, password, name, role, department: 'Unit Utilitas 3B'
+                    })
+                }).then(() => console.log('Cloud sync success')).catch(e => console.log('Cloud sync failed:', e));
+            } catch (e) {
+                console.log('GAS sync error:', e);
+            }
+        }
+        
+        // 10. Success
+        console.log('=== USER CREATED SUCCESSFULLY ===');
+        showCustomAlert(`✓ User ${name} (@${username}) berhasil ditambahkan!`, 'success');
+        closeAddUserModal();
+        renderUserManagement();
+        
+        // Update menu stats
+        setTimeout(setupAdminMenu, 100);
+        
+    } catch (err) {
+        console.error('=== SUBMIT NEW USER ERROR ===', err);
+        showCustomAlert('Terjadi kesalahan: ' + err.message, 'error');
     }
-    
-    showCustomAlert(`✓ User ${name} berhasil ditambahkan!`, 'success');
-    closeAddUserModal();
-    renderUserManagement();
     
     function showError(msg) {
+        console.log('Validation error:', msg);
+        const errorDiv = document.getElementById('addUserError');
         if (errorDiv) {
             errorDiv.textContent = msg;
             errorDiv.style.display = 'block';
@@ -1076,16 +961,76 @@ function renderUserManagement() {
     }
     
     container.innerHTML = html;
-    console.log('User management rendered');
+    console.log('User management rendered, total users:', users.length);
 }
 
 function confirmDeleteUser(username, name) {
-    if (confirm(`Hapus user "${name}" (${username})?\n\nUser tidak dapat mengakses aplikasi setelah dihapus.`)) {
+    if (confirm(`Hapus user "${name}" (@${username})?\n\nUser tidak dapat mengakses aplikasi setelah dihapus.`)) {
         if (deleteUser(username)) {
             showCustomAlert('User berhasil dihapus', 'success');
             renderUserManagement();
+            setTimeout(setupAdminMenu, 100);
         }
     }
+}
+
+function deleteUser(username) {
+    console.log('Deleting user:', username);
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+        showCustomAlert('Unauthorized', 'error');
+        return false;
+    }
+    
+    let users = {};
+    try {
+        users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
+    } catch (e) {
+        console.error('Error reading users:', e);
+        return false;
+    }
+    
+    const userKey = username.toLowerCase();
+    
+    if (users[userKey]?.isDefault) {
+        showCustomAlert('User bawaan sistem tidak dapat dihapus', 'error');
+        return false;
+    }
+    
+    if (userKey === currentUser.username.toLowerCase()) {
+        showCustomAlert('Anda tidak dapat menghapus diri sendiri', 'error');
+        return false;
+    }
+    
+    users[userKey].status = 'Inactive';
+    users[userKey].updatedAt = new Date().toISOString();
+    users[userKey].updatedBy = currentUser.name;
+    
+    try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+        console.log('User deleted successfully');
+    } catch (e) {
+        console.error('Error saving users:', e);
+        return false;
+    }
+    
+    logActivity('USER_DELETED', username, `Deleted by ${currentUser.name}`);
+    
+    if (navigator.onLine) {
+        fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'USER_DELETE',
+                adminUsername: currentUser.username,
+                adminPassword: getCurrentUserPassword(),
+                username: username
+            })
+        }).catch(() => {});
+    }
+    
+    return true;
 }
 
 // ============================================
@@ -1099,11 +1044,14 @@ function showUploadProgress(title = 'Mengupload Data...') {
     const turbine = document.getElementById('uploadTurbine');
     const statusText = document.getElementById('uploadStatusText');
     
-    overlay.classList.remove('hidden', 'success', 'error');
-    percentage.textContent = '0%';
-    ringFill.style.strokeDashoffset = 339.292;
-    turbine.classList.add('spinning');
-    statusText.textContent = title;
+    if (overlay) {
+        overlay.classList.remove('hidden');
+        overlay.style.display = 'flex';
+    }
+    if (percentage) percentage.textContent = '0%';
+    if (ringFill) ringFill.style.strokeDashoffset = 339.292;
+    if (turbine) turbine.classList.add('spinning');
+    if (statusText) statusText.textContent = title;
     
     document.querySelectorAll('.step').forEach((step, idx) => {
         step.classList.remove('active', 'completed');
@@ -1215,6 +1163,7 @@ function hideUploadProgress() {
     const overlay = document.getElementById('uploadProgressOverlay');
     if (overlay) {
         overlay.classList.add('hidden');
+        overlay.style.display = 'none';
         overlay.classList.remove('success', 'error');
     }
     clearInterval(uploadProgressInterval);
@@ -2270,7 +2219,6 @@ async function loadLastBalancingData() {
             return;
         }
         
-        // Mapping fields...
         const fieldMapping = {
             'loadMW': lastData['Load_MW'],
             'eksporMW': lastData['Ekspor_Impor_MW'],
@@ -2821,10 +2769,6 @@ function checkVersionUpdate() {
     localStorage.setItem('app_stored_version', APP_VERSION);
 }
 
-function getAppVersion() {
-    return APP_VERSION;
-}
-
 // ============================================
 // KEYBOARD SHORTCUTS
 // ============================================
@@ -2846,6 +2790,7 @@ document.addEventListener('keydown', (e) => {
 // ============================================
 
 window.addEventListener('DOMContentLoaded', () => {
+    console.log('=== APP STARTING ===');
     updateVersionDisplays();
     checkVersionUpdate();
     
@@ -2857,11 +2802,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
     simulateLoading();
     
-    // Init user storage
     initUserStorage();
     
-    // Background sync jika online
-    if (navigator.onLine && isAuthenticated) {
-        setTimeout(() => syncUsersFromCloud(false), 2000);
-    }
+    console.log('=== APP INITIALIZED ===');
 });
