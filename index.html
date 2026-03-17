@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- Theme Colors untuk Status Bar -->
+    <!-- Theme Colors for Status Bar -->
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: light)">
     
-    <!-- Version Meta (Auto-updated by JS) -->
-    <meta name="app-version" content="">
+    <!-- App Metadata -->
+    <meta name="app-version" content="2.1.0">
     <meta name="app-name" content="Turbine Logsheet Pro">
+    <meta name="description" content="Turbine Logsheet Professional - PT Petrokimia Gresik">
+    <meta name="author" content="Unit Utilitas 3B">
+    <meta name="robots" content="noindex, nofollow">
     
     <!-- iOS Specific -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,989 +25,1285 @@
     <meta name="application-name" content="Turbine Log">
     <meta name="msapplication-TileColor" content="#0f172a">
     <meta name="msapplication-tap-highlight" content="no">
-    <meta name="msapplication-starturl" content="./index.html">
     
-    <!-- SEO & Description -->
-    <meta name="description" content="Turbine Logsheet Professional - PT Petrokimia Gresik">
-    <meta name="author" content="Unit Utilitas 3B">
-    <meta name="robots" content="noindex, nofollow">
-    
-    <!-- Preconnect untuk performa -->
+    <!-- Preconnect for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <title>Turbine Logsheet Pro</title>
     
-    <!-- External CSS dengan version parameter untuk cache busting -->
-    <link rel="stylesheet" href="style.css?v=2.0.1">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Inline Critical CSS (untuk first paint) -->
+    <!-- External CSS -->
+    <link rel="stylesheet" href="style.css?v=2.1.0">
+    
+    <!-- Critical CSS Inline -->
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #0f172a; 
-            color: #f8fafc;
-            min-height: 100vh;
-            overflow-x: hidden;
+        :root {
+            --primary: #0ea5e9;
+            --primary-hover: #0284c7;
+            --secondary: #38bdf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.8);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: rgba(148, 163, 184, 0.2);
         }
         
-        .screen { display: none; min-height: 100vh; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        html, body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark); 
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Screen Management */
+        .screen { 
+            display: none; 
+            min-height: 100vh;
+            animation: fadeIn 0.3s ease;
+        }
+        
         .screen.active { display: block; }
-        #loginScreen.active { display: flex !important; flex-direction: column; }
-        #balancingScreen.active { display: block; }
+        
+        #loginScreen.active { 
+            display: flex !important; 
+            flex-direction: column;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         
         /* Loader Styles */
         .loader-overlay {
-            position: fixed; inset: 0; background: #0f172a;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: fixed; 
+            inset: 0; 
+            background: var(--bg-dark);
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
             z-index: 10000;
+            transition: opacity 0.5s ease;
         }
+        
         .loader-content { text-align: center; }
+        
         .turbine-logo-large svg {
-            width: 120px; height: 120px;
+            width: 120px; 
+            height: 120px;
             animation: spin 2s linear infinite;
             filter: drop-shadow(0 0 15px rgba(14, 165, 233, 0.4));
         }
+        
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+        
         .progress-bar-loader {
-            width: 200px; height: 4px; background: rgba(148, 163, 184, 0.2);
-            border-radius: 9999px; overflow: hidden; margin: 20px auto;
+            width: 200px; 
+            height: 4px; 
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 9999px; 
+            overflow: hidden; 
+            margin: 20px auto;
         }
+        
         .progress-bar-loader .fill {
-            height: 100%; background: linear-gradient(90deg, #0ea5e9, #38bdf8);
-            width: 0%; transition: width 0.3s ease;
+            height: 100%; 
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%; 
+            transition: width 0.3s ease;
         }
         
-        /* Alert Styles */
+        /* Glass Effect */
+        .glass {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+        }
+        
+        /* Alerts */
         .custom-alert {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 10001; backdrop-filter: blur(8px);
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.85);
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            z-index: 10001; 
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
         }
-        .custom-alert.hidden { display: none !important; }
         
-        /* Input Styling */
-        .input-with-icon { position: relative; display: flex; align-items: center; }
+        .custom-alert.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .custom-alert.hidden { 
+            display: none !important; 
+        }
+        
+        /* Form Elements */
+        .input-with-icon { 
+            position: relative; 
+            display: flex; 
+            align-items: center; 
+        }
+        
         .input-icon {
-            position: absolute; left: 12px; color: #64748b; pointer-events: none;
+            position: absolute; 
+            left: 12px; 
+            color: #64748b; 
+            pointer-events: none;
+            z-index: 2;
         }
+        
         .login-input {
-            width: 100%; padding: 14px 16px 14px 44px;
-            background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2);
-            border-radius: 12px; color: #f8fafc; font-size: 1rem; outline: none;
+            width: 100%; 
+            padding: 14px 16px 14px 44px;
+            background: rgba(15, 23, 42, 0.6); 
+            border: 2px solid var(--border);
+            border-radius: 12px; 
+            color: var(--text-primary); 
+            font-size: 1rem; 
+            outline: none;
+            transition: all 0.2s ease;
         }
-        .login-input:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
-        .login-input.error { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+        
+        .login-input:focus { 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); 
+        }
+        
+        .login-input.error { 
+            border-color: var(--error); 
+            background: rgba(239, 68, 68, 0.05); 
+            animation: shake 0.5s ease;
+        }
         
         .password-toggle {
-            position: absolute; right: 12px; background: none; border: none;
-            color: #64748b; cursor: pointer; padding: 4px;
+            position: absolute; 
+            right: 12px; 
+            background: none; 
+            border: none;
+            color: #64748b; 
+            cursor: pointer; 
+            padding: 4px;
+            z-index: 2;
         }
         
-        .login-error {
-            color: #ef4444; font-size: 0.875rem; text-align: center;
-            margin: 8px 0; display: none; padding: 8px;
-            background: rgba(239, 68, 68, 0.1); border-radius: 8px;
-            border-left: 3px solid #ef4444;
-        }
-        .login-error.show { display: block; animation: shake 0.5s ease; }
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
         }
         
-        /* Version Display Class */
+        .login-error {
+            color: var(--error); 
+            font-size: 0.875rem; 
+            text-align: center;
+            margin: 8px 0; 
+            display: none; 
+            padding: 8px;
+            background: rgba(239, 68, 68, 0.1); 
+            border-radius: 8px;
+            border-left: 3px solid var(--error);
+        }
+        
+        .login-error.show { display: block; }
+        
+        /* Version Display */
         .version-display {
-            display: inline-block; padding: 4px 12px;
-            background: rgba(14, 165, 233, 0.1); color: #38bdf8;
-            border-radius: 9999px; font-size: 0.75rem; font-weight: 600;
+            display: inline-block; 
+            padding: 4px 12px;
+            background: rgba(14, 165, 233, 0.1); 
+            color: var(--secondary);
+            border-radius: 9999px; 
+            font-size: 0.75rem; 
+            font-weight: 600;
             font-family: 'Courier New', monospace;
         }
+        
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            z-index: 10003;
+            transition: transform 0.3s ease;
+        }
+        
+        .toast-container.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .toast {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--error); }
+        .toast.warning { border-left: 3px solid var(--warning); }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            z-index: 10002;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        
+        .modal-overlay.visible {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlide 0.3s ease;
+        }
+        
+        @keyframes modalSlide {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        /* Upload Overlay */
+        .upload-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10002;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .upload-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+        
+        /* Utility Classes */
+        .text-gradient {
+            background: linear-gradient(135deg, #f8fafc 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .btn-icon:hover {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-primary);
+        }
+        
+        .hidden { display: none !important; }
     </style>
-    
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- ============================================ -->
-<!-- LOADING SCREEN -->
-<!-- ============================================ -->
-<div id="loader" class="loader-overlay">
-    <div class="loader-content">
-        <div class="turbine-logo-large">
-            <svg viewBox="0 0 100 100" fill="none" stroke="#0ea5e9" stroke-width="2">
-                <circle cx="50" cy="50" r="8" fill="#0ea5e9"/>
-                <ellipse cx="50" cy="25" rx="6" ry="20" fill="#38bdf8" opacity="0.8"/>
-                <ellipse cx="72" cy="38" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(60 72 38)"/>
-                <ellipse cx="72" cy="62" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(120 72 62)"/>
-                <ellipse cx="50" cy="75" rx="6" ry="20" fill="#38bdf8" opacity="0.8"/>
-                <ellipse cx="28" cy="62" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(60 28 62)"/>
-                <ellipse cx="28" cy="38" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(120 28 38)"/>
-            </svg>
-        </div>
-        <div class="loader-text">
-            <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; color: #f8fafc;">Utilitas 3B</h3>
-            <p style="font-size: 0.9375rem; color: #94a3b8; margin-bottom: 24px;">Sinkronisasi Data...</p>
-            <div class="progress-bar-loader">
-                <div class="fill" id="loaderProgress" style="width: 0%"></div>
+    <!-- Loading Screen -->
+    <div id="loader" class="loader-overlay">
+        <div class="loader-content">
+            <div class="turbine-logo-large">
+                <svg viewBox="0 0 100 100" fill="none" stroke="#0ea5e9" stroke-width="2">
+                    <circle cx="50" cy="50" r="8" fill="#0ea5e9"/>
+                    <ellipse cx="50" cy="25" rx="6" ry="20" fill="#38bdf8" opacity="0.8"/>
+                    <ellipse cx="72" cy="38" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(60 72 38)"/>
+                    <ellipse cx="72" cy="62" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(120 72 62)"/>
+                    <ellipse cx="50" cy="75" rx="6" ry="20" fill="#38bdf8" opacity="0.8"/>
+                    <ellipse cx="28" cy="62" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(60 28 62)"/>
+                    <ellipse cx="28" cy="38" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(120 28 38)"/>
+                </svg>
+            </div>
+            <div class="loader-text">
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; color: #f8fafc;">Utilitas 3B</h3>
+                <p style="font-size: 0.9375rem; color: #94a3b8; margin-bottom: 24px;">Sinkronisasi Data...</p>
+                <div class="progress-bar-loader">
+                    <div class="fill" id="loaderProgress" style="width: 0%"></div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- ============================================ -->
-<!-- UPDATE ALERT -->
-<!-- ============================================ -->
-<div id="updateAlert" class="custom-alert hidden">
-    <div class="alert-content" style="background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; text-align: center; max-width: 300px; width: 90%;">
-        <h3 style="margin-bottom: 8px; color: #f8fafc; font-size: 1.125rem; font-weight: 600;">Update Tersedia</h3>
-        <p style="color: #94a3b8; margin-bottom: 16px; font-size: 0.875rem;">Versi baru aplikasi telah tersedia.</p>
-        <button class="alert-btn" onclick="applyUpdate()" style="padding: 12px 24px; background: #0ea5e9; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">Update Sekarang</button>
-    </div>
-</div>
-
-<!-- ============================================ -->
-<!-- CUSTOM ALERT MODAL -->
-<!-- ============================================ -->
-<div id="customAlert" class="custom-alert hidden">
-    <div class="alert-content" id="alertContent" style="background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 24px; text-align: center; max-width: 320px; width: 90%;">
-        <div class="alert-icon-wrapper" id="alertIconWrapper" style="width: 56px; height: 56px; margin: 0 auto 16px; position: relative;">
-            <svg viewBox="0 0 52 52" style="stroke: #10b981; stroke-width: 3; fill: none; width: 100%; height: 100%;">
-                <circle cx="26" cy="26" r="25"/>
-                <path d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-            </svg>
+    <!-- Update Alert -->
+    <div id="updateAlert" class="custom-alert hidden">
+        <div class="alert-content" style="background: rgba(30, 41, 59, 0.95); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; max-width: 300px; width: 90%;">
+            <h3 style="margin-bottom: 8px; color: #f8fafc; font-size: 1.125rem; font-weight: 600;">Update Tersedia</h3>
+            <p style="color: #94a3b8; margin-bottom: 16px; font-size: 0.875rem;">Versi baru aplikasi telah tersedia.</p>
+            <button class="alert-btn" onclick="applyUpdate()" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">Update Sekarang</button>
         </div>
-        <h3 id="alertTitle" style="margin-bottom: 8px; color: #f8fafc; font-size: 1.125rem; font-weight: 600;">Berhasil</h3>
-        <p id="alertMessage" style="color: #94a3b8; margin-bottom: 20px; font-size: 0.875rem;">Data berhasil dikirim!</p>
-        <button class="alert-btn success" onclick="closeAlert()" style="padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600;">Oke</button>
     </div>
-</div>
 
-<div class="app-container">
+    <!-- Custom Alert Modal -->
+    <div id="customAlert" class="custom-alert hidden">
+        <div class="alert-content" id="alertContent" style="background: rgba(30, 41, 59, 0.95); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; max-width: 320px; width: 90%;">
+            <div class="alert-icon-wrapper" id="alertIconWrapper" style="width: 56px; height: 56px; margin: 0 auto 16px; position: relative;">
+                <svg viewBox="0 0 52 52" style="stroke: var(--success); stroke-width: 3; fill: none; width: 100%; height: 100%;">
+                    <circle cx="26" cy="26" r="25"/>
+                    <path d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+            <h3 id="alertTitle" style="margin-bottom: 8px; color: #f8fafc; font-size: 1.125rem; font-weight: 600;">Berhasil</h3>
+            <p id="alertMessage" style="color: #94a3b8; margin-bottom: 20px; font-size: 0.875rem;">Data berhasil dikirim!</p>
+            <button class="alert-btn success" onclick="closeAlert()" style="padding: 12px 24px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600;">Oke</button>
+        </div>
+    </div>
 
-    <!-- ============================================ -->
-    <!-- LOGIN SCREEN -->
-    <!-- ============================================ -->
-    <div id="loginScreen" class="screen active">
-        <div class="login-container" style="min-height: 100vh; display: flex; flex-direction: column; padding: 16px; padding-top: max(24px, env(safe-area-inset-top));">
-            <div class="login-header" style="text-align: center; margin-bottom: 32px; margin-top: auto;">
-                <div class="logo-container animated" style="width: 100px; height: 100px; margin: 0 auto 20px; position: relative;">
-                    <div class="logo-fallback" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3rem; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: 24px; color: white; box-shadow: 0 10px 40px rgba(14, 165, 233, 0.3);">
-                        ⚡
-                    </div>
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 1.25rem; font-weight: 600; color: #f8fafc;">Tambah User Baru</h3>
+                <button onclick="closeAddUserModal()" class="btn-icon" style="width: 32px; height: 32px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 6px;">Username *</label>
+                    <input type="text" id="newUsername" placeholder="Masukkan username" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.9375rem; outline: none;">
                 </div>
-                <h1 class="app-title" style="font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #f8fafc 0%, #38bdf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">TURBINE LOG</h1>
-                <p style="font-size: 0.875rem; color: #64748b;">PT Petrokimia Gresik - Unit III B</p>
                 
-                <!-- Version Display (Auto-updated by JS) -->
-                <div style="margin-top: 12px;">
-                    <span class="version-display">Loading...</span>
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 6px;">Password *</label>
+                    <input type="password" id="newPassword" placeholder="Minimal 6 karakter" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.9375rem; outline: none;">
                 </div>
+                
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 6px;">Nama Lengkap *</label>
+                    <input type="text" id="newName" placeholder="Nama lengkap user" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.9375rem; outline: none;">
+                </div>
+                
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 6px;">Role *</label>
+                    <select id="newRole" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.9375rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 40px;">
+                        <option value="operator">Operator</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                
+                <button onclick="submitNewUser()" style="margin-top: 8px; width: 100%; padding: 14px; background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem;">Simpan User</button>
             </div>
-                            
-            <div class="login-form" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 20px; padding: 32px; backdrop-filter: blur(12px); margin-bottom: 16px;">
-                <h2 class="login-title" style="font-size: 1.25rem; font-weight: 600; margin-bottom: 4px; text-align: center; color: #f8fafc;">Login Operator</h2>
-                <p class="login-subtitle" style="font-size: 0.875rem; color: #94a3b8; text-align: center; margin-bottom: 24px;">Masukkan kredensial Anda</p>
-                        
-                <div class="input-group">
-                    <div class="input-with-icon">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                        <input type="text" id="operatorName" class="login-input" placeholder="Username" autocomplete="username">
+        </div>
+    </div>
+
+    <div class="app-container">
+
+        <!-- LOGIN SCREEN -->
+        <div id="loginScreen" class="screen active">
+            <div class="login-container" style="min-height: 100vh; display: flex; flex-direction: column; padding: 16px; padding-top: max(24px, env(safe-area-inset-top));">
+                <div class="login-header" style="text-align: center; margin-bottom: 32px; margin-top: auto;">
+                    <div class="logo-container animated" style="width: 100px; height: 100px; margin: 0 auto 20px; position: relative;">
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3rem; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: 24px; color: white; box-shadow: 0 10px 40px rgba(14, 165, 233, 0.3);">
+                            ⚡
+                        </div>
+                    </div>
+                    <h1 class="text-gradient" style="font-size: 1.75rem; font-weight: 700; margin-bottom: 8px;">TURBINE LOG</h1>
+                    <p style="font-size: 0.875rem; color: #64748b;">PT Petrokimia Gresik - Unit III B</p>
+                    
+                    <div style="margin-top: 12px;">
+                        <span class="version-display">v2.1.0</span>
                     </div>
                 </div>
-
-                <div class="input-group">
-                    <div class="input-with-icon">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                        <input type="password" id="operatorPassword" class="login-input" placeholder="Password" autocomplete="current-password">
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility()" tabindex="-1">
-                            <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
+                                
+                <div class="glass" style="border-radius: 20px; padding: 32px; margin-bottom: 16px;">
+                    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 4px; text-align: center; color: #f8fafc;">Login Operator</h2>
+                    <p style="font-size: 0.875rem; color: #94a3b8; text-align: center; margin-bottom: 24px;">Masukkan kredensial Anda</p>
+                            
+                    <div style="margin-bottom: 16px;">
+                        <div class="input-with-icon">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
                             </svg>
-                            <svg id="eyeOffIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            <input type="text" id="operatorName" class="login-input" placeholder="Username" autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <div class="input-with-icon">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <input type="password" id="operatorPassword" class="login-input" placeholder="Password" autocomplete="current-password">
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility()" tabindex="-1">
+                                <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg id="eyeOffIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <p id="loginError" class="login-error">Username atau password salah!</p>
+                    
+                    <button class="btn btn-primary btn-full" onclick="loginOperator()" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/>
+                        </svg>
+                        <span>Masuk Sistem</span>
+                    </button>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">Default Login:</p>
+                        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                            <span style="padding: 4px 8px; background: rgba(14, 165, 233, 0.1); color: var(--secondary); border-radius: 6px; font-size: 0.75rem; font-family: monospace;">admin / admin123</span>
+                            <span style="padding: 4px 8px; background: rgba(16, 185, 129, 0.1); color: #34d399; border-radius: 6px; font-size: 0.75rem; font-family: monospace;">operator / operator123</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: auto; padding-top: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));">
+                    <p style="font-size: 0.75rem; color: #64748b;">© 2024 Unit Utilitas 3B</p>
+                    <div style="margin-top: 8px;">
+                        <span class="version-display">v2.1.0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HOME SCREEN -->
+        <div id="homeScreen" class="screen">
+            <div class="glass" style="border-radius: 0 0 24px 24px; padding: calc(12px + env(safe-area-inset-top)) 16px 24px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #cbd5e1;">
+                        <div style="width: 32px; height: 32px; background: rgba(14, 165, 233, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--secondary);">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <span id="displayUserName" style="font-weight: 500;">Operator</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="version-display" style="padding: 2px 8px; font-size: 0.7rem;">v2.1.0</span>
+                        <button class="btn-icon" onclick="logoutOperator()" title="Ganti Operator" style="width: 36px; height: 36px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: var(--error);">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
                             </svg>
                         </button>
                     </div>
                 </div>
                 
-                <p id="loginError" class="login-error">Username atau password salah!</p>
-                
-                <button class="btn btn-primary btn-full" onclick="loginOperator()" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/>
-                    </svg>
-                    <span>Masuk Sistem</span>
-                </button>
-                
-                <div style="margin-top: 20px; text-align: center;">
-                    <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">Default Login:</p>
-                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-                        <span style="padding: 4px 8px; background: rgba(14, 165, 233, 0.1); color: #38bdf8; border-radius: 6px; font-size: 0.75rem; font-family: monospace;">admin / admin123</span>
-                        <span style="padding: 4px 8px; background: rgba(16, 185, 129, 0.1); color: #34d399; border-radius: 6px; font-size: 0.75rem; font-family: monospace;">operator / operator123</span>
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 12px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                        ⚡
+                    </div>
+                    <h1 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; color: #f8fafc;">LOGSHEET DIGITAL</h1>
+                    <p style="font-size: 0.875rem; color: #94a3b8;">Sistem Input Data Operasional Turbin</p>
+                    
+                    <!-- Quick Stats -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                        <div>
+                            <div id="statProgress" style="font-size: 1.25rem; font-weight: 700; color: var(--secondary);">0%</div>
+                            <div style="font-size: 0.6875rem; color: #64748b; margin-top: 2px;">Progress</div>
+                        </div>
+                        <div>
+                            <div id="statAreas" style="font-size: 1.25rem; font-weight: 700; color: var(--success);">0/11</div>
+                            <div style="font-size: 0.6875rem; color: #64748b; margin-top: 2px;">Area Selesai</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--warning);">3</div>
+                            <div style="font-size: 0.6875rem; color: #64748b; margin-top: 2px;">Shift</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="login-footer" style="text-align: center; margin-top: auto; padding-top: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));">
-                <p style="font-size: 0.75rem; color: #64748b;">© 2024 Unit Utilitas 3B</p>
-                <!-- Version Display in Footer (Auto-updated by JS) -->
-                <div style="margin-top: 8px;">
-                    <span class="version-display">v2.0.1</span>
+
+            <div id="menuGrid" style="padding: 0 16px; display: flex; flex-direction: column; gap: 12px;">
+                <!-- Main Menu Items -->
+                <div class="menu-card primary" onclick="navigateTo('areaListScreen')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; cursor: pointer; border-left: 4px solid var(--primary); transition: transform 0.2s;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                    </div>
+                    <div style="flex: 1;">
+                        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Mulai Logsheet</h3>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Input Data Operasional Turbin</p>
+                    </div>
+                </div>
+
+                <div class="menu-card warning" onclick="navigateTo('tpmScreen')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; cursor: pointer; border-left: 4px solid var(--warning); transition: transform 0.2s;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                        </svg>
+                    </div>
+                    <div style="flex: 1;">
+                        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Mulai TPM</h3>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Total Productive Maintenance</p>
+                    </div>
+                </div>
+
+                <div class="menu-card success" onclick="navigateTo('balancingScreen')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; cursor: pointer; border-left: 4px solid var(--success); transition: transform 0.2s;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--success) 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <div style="flex: 1;">
+                        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Input Balancing</h3>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Update Balancing Power & Steam</p>
+                    </div>
+                </div>
+
+                <!-- User Management Button (Admin Only - Injected via JS) -->
+            </div>
+
+            <!-- Offline Data Indicator -->
+            <div id="offlineIndicator" style="display: none; margin: 16px; padding: 12px 16px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; align-items: center; gap: 10px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                    <path d="M1 4v6h6M23 20v-6h-6"/>
+                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                </svg>
+                <div style="flex: 1;">
+                    <div style="font-size: 0.875rem; font-weight: 600; color: #f59e0b;">Data Tersimpan Lokal</div>
+                    <div style="font-size: 0.75rem; color: #94a3b8;">Akan dikirim otomatis saat online</div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- ============================================ -->
-    <!-- HOME SCREEN -->
-    <!-- ============================================ -->
-    <div id="homeScreen" class="screen">
-        <div class="home-header glass" style="background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 0 0 24px 24px; padding: calc(12px + env(safe-area-inset-top)) 16px 24px; margin-bottom: 16px;">
-            <div class="header-top" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <div class="user-info" style="display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #cbd5e1;">
-                    <div class="avatar" style="width: 32px; height: 32px; background: rgba(14, 165, 233, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #38bdf8;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                    </div>
-                    <span id="displayUserName" style="font-weight: 500;">Operator</span>
+        <!-- USER MANAGEMENT SCREEN (Admin Only) -->
+        <div id="userManagementScreen" class="screen">
+            <div class="glass" style="border-bottom: 1px solid var(--border); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
+                <button class="btn-icon" onclick="navigateTo('homeScreen')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <h2 style="font-size: 1.125rem; font-weight: 600; color: #f8fafc; margin: 0;">Kelola User</h2>
+                <div style="display: flex; align-items: center; padding: 4px 12px; background: rgba(239, 68, 68, 0.1); border-radius: 20px; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
+                    <span id="userCount">0 User</span>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <!-- Version Badge di Header -->
-                    <span class="version-display" style="padding: 2px 8px; font-size: 0.7rem;">v2.0.1</span>
-                    <button class="btn-icon logout-btn" onclick="logoutOperator()" title="Ganti Operator" style="width: 36px; height: 36px; border-radius: 8px; border: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+            </div>
+
+            <div style="padding: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom));">
+                <div id="userManagementList">
+                    <!-- User list injected here -->
+                </div>
+                
+                <button onclick="openAddUserModal()" style="position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); right: 24px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); border: none; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4); cursor: pointer; z-index: 100;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- TPM LIST SCREEN -->
+        <div id="tpmScreen" class="screen">
+            <div class="glass" style="border-bottom: 1px solid var(--border); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
+                <button class="btn-icon" onclick="navigateTo('homeScreen')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <h2 style="font-size: 1.125rem; font-weight: 600; color: #f8fafc; margin: 0;">TPM Areas</h2>
+                <div style="display: flex; align-items: center; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border-radius: 20px; font-size: 0.75rem; color: var(--secondary); max-width: 120px; overflow: hidden;">
+                    <span id="tpmHeaderUser" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
+                </div>
+            </div>
+
+            <div style="padding: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom));">
+                <div class="list-item" onclick="openTPMArea('Area #6200')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;">
+                    <div style="width: 48px; height: 48px; min-width: 48px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🔧</div>
+                    <div style="flex: 1;">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Area #6200</h4>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Peralatan & Sistem Unit</p>
+                    </div>
+                </div>
+
+                <div class="list-item" onclick="openTPMArea('Area Turbin')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;">
+                    <div style="width: 48px; height: 48px; min-width: 48px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">⚙️</div>
+                    <div style="flex: 1;">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Area Turbin</h4>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Maintenance Sistem Turbin</p>
+                    </div>
+                </div>
+
+                <div class="list-item" onclick="openTPMArea('Area Cooling Tower')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;">
+                    <div style="width: 48px; height: 48px; min-width: 48px; background: linear-gradient(135deg, var(--success) 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🗼</div>
+                    <div style="flex: 1;">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Cooling Tower</h4>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Sistem Pendingin</p>
+                    </div>
+                </div>
+
+                <div class="list-item" onclick="openTPMArea('Area Compressor')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;">
+                    <div style="width: 48px; height: 48px; min-width: 48px; background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🌬️</div>
+                    <div style="flex: 1;">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Area Compressor</h4>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Sistem Kompresor</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TPM INPUT SCREEN -->
+        <div id="tpmInputScreen" class="screen">
+            <div class="glass" style="border-bottom: 1px solid var(--border); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
+                <button class="btn-icon" onclick="navigateTo('tpmScreen')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div style="text-align: center; flex: 1;">
+                    <h2 id="tpmInputTitle" style="font-size: 1.125rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">TPM Check</h2>
+                    <span id="tpmInputUser" style="font-size: 0.75rem; color: #94a3b8; display: block;">-</span>
+                </div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div style="padding: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom));">
+                <input type="file" id="tpmCamera" accept="image/*" capture="environment" style="display: none;">
+                
+                <div class="glass" id="tpmPhotoSection" style="border-radius: 20px; padding: 20px; margin-bottom: 16px;">
+                    <div id="tpmPhotoPreview" style="height: 200px; background: #1e293b; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; overflow: hidden;">
+                        <div style="text-align: center; color: #64748b;">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 8px;">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            <div>Ambil Foto</div>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('tpmCamera').click()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9375rem;">
+                        <span>📷 Buka Kamera</span>
+                    </button>
+                </div>
+
+                <div class="glass" style="border-radius: 20px; padding: 20px; margin-bottom: 16px;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 20px; color: #f8fafc;">Status Kondisi</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+                        <button class="status-btn" id="btnNormal" onclick="selectTPMStatus('normal')" style="padding: 16px 8px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; color: white; cursor: pointer; font-size: 0.8125rem; font-weight: 500; transition: all 0.2s;">
+                            <span style="display: block; width: 12px; height: 12px; background: var(--success); border-radius: 50%; margin: 0 auto 8px;"></span>
+                            <div>Normal</div>
+                        </button>
+                        <button class="status-btn" id="btnAbnormal" onclick="selectTPMStatus('abnormal')" style="padding: 16px 8px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; color: white; cursor: pointer; font-size: 0.8125rem; font-weight: 500; transition: all 0.2s;">
+                            <span style="display: block; width: 12px; height: 12px; background: var(--warning); border-radius: 50%; margin: 0 auto 8px;"></span>
+                            <div>Abnormal</div>
+                        </button>
+                        <button class="status-btn" id="btnOff" onclick="selectTPMStatus('off')" style="padding: 16px 8px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; color: white; cursor: pointer; font-size: 0.8125rem; font-weight: 500; transition: all 0.2s;">
+                            <span style="display: block; width: 12px; height: 12px; background: var(--error); border-radius: 50%; margin: 0 auto 8px;"></span>
+                            <div>Off</div>
+                        </button>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; color: #94a3b8; font-size: 0.875rem; font-weight: 500;">Keterangan / Temuan</label>
+                        <textarea id="tpmNotes" rows="3" placeholder="Deskripsikan kondisi area..." style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid #334155; border-radius: 12px; color: white; resize: vertical; font-family: inherit; font-size: 0.9375rem; outline: none;"></textarea>
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #94a3b8; font-size: 0.875rem; font-weight: 500;">Tindakan</label>
+                        <select id="tpmAction" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid #334155; border-radius: 12px; color: white; font-size: 0.9375rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 40px;">
+                            <option value="">Pilih tindakan...</option>
+                            <option value="Checking/Routine">Checking/Routine</option>
+                            <option value="Cleaning">Cleaning</option>
+                            <option value="Oiling/Lubrication">Oiling/Lubrication</option>
+                            <option value="Minor Repair">Minor Repair</option>
+                            <option value="Report to Maintenance">Report to Maintenance</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="submitTPMData()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);">
+                    <span>💾 Simpan Data TPM</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- AREA LIST SCREEN -->
+        <div id="areaListScreen" class="screen">
+            <div class="glass" style="border-bottom: 1px solid var(--border); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
+                <button class="btn-icon" onclick="navigateTo('homeScreen')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div style="text-align: center; flex: 1;">
+                    <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Logsheet</h2>
+                    <span id="progressText" style="font-size: 0.75rem; color: #94a3b8; display: block;">0% Complete</span>
+                </div>
+                <div style="display: flex; align-items: center; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border-radius: 20px; font-size: 0.75rem; color: var(--secondary); max-width: 120px; overflow: hidden;">
+                    <span id="areaListUser" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
+                </div>
+            </div>
+
+            <div class="glass" style="border-radius: 16px; padding: 16px; margin: 16px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 8px; color: #cbd5e1;">
+                    <span>Overall Progress</span>
+                    <span id="overallPercent" style="font-weight: 600; color: var(--secondary);">0%</span>
+                </div>
+                <div style="width: 100%; height: 6px; background: #1e293b; border-radius: 9999px; overflow: hidden;">
+                    <div id="overallProgressBar" style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 9999px; transition: width 0.3s ease; width: 0%;"></div>
+                </div>
+            </div>
+
+            <div id="areaList" style="padding: 0 16px 100px;">
+                <!-- Areas injected here -->
+            </div>
+
+            <button id="submitBtn" onclick="sendToSheet()" style="display: none; position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); left: 16px; right: 16px; background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: white; padding: 16px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); z-index: 100;">
+                <span>📤 Kirim Data</span>
+            </button>
+        </div>
+
+        <!-- PARAMETER INPUT SCREEN -->
+        <div id="paramScreen" class="screen">
+            <div class="glass" style="border-bottom: 1px solid var(--border); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
+                <button class="btn-icon" onclick="goBack()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div style="background: rgba(14, 165, 233, 0.1); padding: 6px 16px; border-radius: 20px;">
+                    <span id="stepInfo" style="font-size: 0.875rem; font-weight: 600; color: var(--secondary);">1/10</span>
+                </div>
+                <div style="display: flex; align-items: center; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border-radius: 20px; font-size: 0.75rem; color: var(--secondary); max-width: 100px; overflow: hidden;">
+                    <span id="paramUser" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
+                </div>
+            </div>
+
+            <div style="padding: 16px; display: flex; flex-direction: column; min-height: calc(100vh - 80px);">
+                <div class="glass" style="border-radius: 20px; padding: 24px; margin-bottom: 16px; flex: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <span id="currentAreaName" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.05em;">Area</span>
+                        <span id="areaProgress" style="padding: 4px 12px; background: #1e293b; border-radius: 20px; font-size: 0.875rem; color: #94a3b8;">1/10</span>
+                    </div>
+                    
+                    <h2 id="labelInput" style="font-size: 1.25rem; font-weight: 600; color: #f8fafc; margin-bottom: 32px; line-height: 1.4;">Parameter Name</h2>
+                    
+                    <div id="mainInputWrapper" style="display: flex; align-items: center; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 32px;">
+                        <div id="inputFieldContainer" style="flex: 1; padding: 16px 20px;">
+                            <input type="text" id="valInput" inputmode="decimal" placeholder="0.00" autocomplete="off" style="width: 100%; background: transparent; border: none; color: #f8fafc; font-size: 1.5rem; font-weight: 600; outline: none;">
+                        </div>
+                        <div id="unitDisplay" style="padding: 0 20px; background: rgba(14, 165, 233, 0.1); color: var(--secondary); font-weight: 700; font-size: 0.875rem; border-left: 2px solid var(--border); min-height: 64px; display: flex; align-items: center; white-space: nowrap;">--</div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #1e293b; border-radius: 12px;">
+                        <div style="flex: 1; text-align: center;">
+                            <span style="display: block; font-size: 0.6875rem; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Nilai Terakhir</span>
+                            <span id="prevValDisplay" style="display: block; font-size: 1.25rem; font-weight: 700; color: #cbd5e1;">--</span>
+                        </div>
+                        <div style="width: 1px; height: 40px; background: var(--border);"></div>
+                        <div style="flex: 1; text-align: center;">
+                            <span style="display: block; font-size: 0.6875rem; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Update</span>
+                            <span id="lastTimeLabel" style="display: block; font-size: 1.25rem; font-weight: 700; color: #cbd5e1;">--:--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Abnormal Section -->
+                <div id="statusAbnormalCard" style="margin: 0 0 16px; padding: 16px; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.875rem; font-weight: 600; color: #f87171; margin-bottom: 12px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
                         </svg>
+                        <span>Kondisi Parameter</span>
+                    </div>
+                    
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <label class="status-chip" data-status="ERROR" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(30, 41, 59, 0.8); border: 2px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.8125rem; color: #94a3b8; user-select: none;">
+                            <input type="checkbox" name="paramStatus" value="ERROR" onchange="handleStatusChange(this)" style="display: none;">
+                            <span>⚠️</span>
+                            <span>ERROR</span>
+                        </label>
+                        
+                        <label class="status-chip" data-status="UPPER" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(30, 41, 59, 0.8); border: 2px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.8125rem; color: #94a3b8; user-select: none;">
+                            <input type="checkbox" name="paramStatus" value="UPPER" onchange="handleStatusChange(this)" style="display: none;">
+                            <span>⬆️</span>
+                            <span>UPPER</span>
+                        </label>
+                        
+                        <label class="status-chip" data-status="NOT_INSTALLED" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(30, 41, 59, 0.8); border: 2px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.8125rem; color: #94a3b8; user-select: none;">
+                            <input type="checkbox" name="paramStatus" value="NOT_INSTALLED" onchange="handleStatusChange(this)" style="display: none;">
+                            <span>❌</span>
+                            <span>TIDAK TERPASANG</span>
+                        </label>
+                    </div>
+                    
+                    <div id="statusNoteContainer" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(239, 68, 68, 0.1);">
+                        <input type="text" id="statusNote" placeholder="Keterangan masalah (opsional)..." maxlength="100" style="width: 100%; padding: 10px 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #f8fafc; font-size: 0.875rem; outline: none;">
+                    </div>
+                </div>
+                
+                <div id="progressDots" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; padding: 0 16px;"></div>
+
+                <div style="display: flex; gap: 12px; padding-bottom: env(safe-area-inset-bottom);">
+                    <button onclick="goBack()" style="flex: 1; padding: 16px; background: #1e293b; color: #94a3b8; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9375rem;">
+                        <span>Kembali</span>
+                    </button>
+                    <button onclick="saveStep()" style="flex: 2; padding: 16px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9375rem; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
+                        <span>Simpan</span>
                     </button>
                 </div>
             </div>
-            
-            <div class="home-hero-content" style="text-align: center;">
-                <div class="logo-container small animated" style="width: 60px; height: 60px; margin: 0 auto 12px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
-                    ⚡
-                </div>
-                <h1 class="home-title" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; color: #f8fafc;">LOGSHEET DIGITAL</h1>
-                <p class="home-subtitle" style="font-size: 0.875rem; color: #94a3b8;">Sistem Input Data Operasional Turbin</p>
-            </div>
         </div>
 
-        <div class="menu-grid" style="padding: 0 16px; display: flex; flex-direction: column; gap: 12px;">
-            <div class="menu-card primary" onclick="navigateTo('areaListScreen')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; cursor: pointer; border-left: 4px solid #0ea5e9;">
-                <div class="menu-icon" style="width: 48px; height: 48px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- BALANCING INPUT SCREEN -->
+        <div id="balancingScreen" class="screen">
+            <div class="glass" style="border-bottom: 1px solid var(--border); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
+                <button class="btn-icon" onclick="navigateTo('homeScreen')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div style="text-align: center; flex: 1;">
+                    <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Input Balancing</h2>
+                    <span id="balancingShiftInfo" style="font-size: 0.75rem; color: #94a3b8; display: block;">Shift 3 • Auto Update</span>
+                </div>
+                <div style="display: flex; align-items: center; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border-radius: 20px; font-size: 0.75rem; color: var(--secondary); max-width: 100px; overflow: hidden;">
+                    <span id="balancingUser" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
+                </div>
+            </div>
+
+            <div style="padding: 16px; padding-bottom: calc(100px + env(safe-area-inset-bottom));">
+                <!-- Header Info Card -->
+                <div class="glass" style="border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Tanggal</label>
+                            <input type="date" id="balancingDate" readonly style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3); background: rgba(14, 165, 233, 0.1); color: var(--secondary); font-weight: 600; text-align: center;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Jam Update</label>
+                            <input type="time" id="balancingTime" readonly style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3); background: rgba(14, 165, 233, 0.1); color: var(--secondary); font-weight: 600; text-align: center;">
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px; text-align: center;">
+                        <span id="currentShiftBadge" style="display: inline-block; padding: 4px 16px; background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: white; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;">SHIFT 3</span>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button type="button" onclick="loadLastBalancingData()" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74-2.74L3 12"/>
+                            <path d="M3 3v9h9"/>
+                        </svg>
+                        <span>Data Terakhir</span>
+                    </button>
+
+                    <button type="button" onclick="resetBalancingForm()" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        <span>Reset Form</span>
+                    </button>
+                </div>
+
+                <!-- Draft Indicator -->
+                <div id="draftStatusIndicator" style="display: none; margin-bottom: 16px; padding: 10px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; font-size: 12px; color: #34d399; align-items: center; gap: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                         <polyline points="14 2 14 8 20 8"/>
                         <line x1="16" y1="13" x2="8" y2="13"/>
                         <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
                     </svg>
-                </div>
-                <div class="menu-content" style="flex: 1;">
-                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Mulai Logsheet</h3>
-                    <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Input Data Operasional Turbin</p>
-                </div>
-            </div>
-
-            <div class="menu-card warning" onclick="navigateTo('tpmScreen')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; cursor: pointer; border-left: 4px solid #f59e0b;">
-                <div class="menu-icon" style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-                    </svg>
-                </div>
-                <div class="menu-content" style="flex: 1;">
-                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Mulai TPM</h3>
-                    <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Total Productive Maintenance</p>
-                </div>
-            </div>
-
-            <div class="menu-card success" onclick="navigateTo('balancingScreen')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; cursor: pointer; border-left: 4px solid #10b981;">
-                <div class="menu-icon" style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                </div>
-                <div class="menu-content" style="flex: 1;">
-                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Input Balancing</h3>
-                    <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Update Balancing Power & Steam</p>
-                </div>
-            </div>
-        </div>
-
-        
-    </div>
-
-    <!-- ============================================ -->
-    <!-- TPM LIST SCREEN -->
-    <!-- ============================================ -->
-    <div id="tpmScreen" class="screen">
-        <div class="screen-header glass" style="background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(148, 163, 184, 0.2); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
-            <button class="btn-icon" onclick="navigateTo('homeScreen')" style="width: 40px; height: 40px; border-radius: 10px; border: none; background: transparent; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-            </button>
-            <h2 style="font-size: 1.125rem; font-weight: 600; color: #f8fafc; margin: 0;">TPM Areas</h2>
-            <div class="user-pill" style="display: flex; align-items: center; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border-radius: 20px; font-size: 0.75rem; color: #38bdf8; max-width: 120px; overflow: hidden;">
-                <span id="tpmHeaderUser" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
-            </div>
-        </div>
-
-        <div class="list-container" style="padding: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom));">
-            <div class="list-item" onclick="openTPMArea('Area #6200')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; margin-bottom: 12px; cursor: pointer;">
-                <div class="item-icon" style="width: 48px; height: 48px; min-width: 48px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🔧</div>
-                <div class="item-content" style="flex: 1;">
-                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Area #6200</h4>
-                    <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Peralatan & Sistem Unit</p>
-                </div>
-            </div>
-
-            <div class="list-item" onclick="openTPMArea('Area Turbin')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; margin-bottom: 12px; cursor: pointer;">
-                <div class="item-icon" style="width: 48px; height: 48px; min-width: 48px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">⚙️</div>
-                <div class="item-content" style="flex: 1;">
-                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Area Turbin</h4>
-                    <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Maintenance Sistem Turbin</p>
-                </div>
-            </div>
-
-            <div class="list-item" onclick="openTPMArea('Area Cooling Tower')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; margin-bottom: 12px; cursor: pointer;">
-                <div class="item-icon" style="width: 48px; height: 48px; min-width: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🗼</div>
-                <div class="item-content" style="flex: 1;">
-                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Cooling Tower</h4>
-                    <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Sistem Pendingin</p>
-                </div>
-            </div>
-
-            <div class="list-item" onclick="openTPMArea('Area Compressor')" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; margin-bottom: 12px; cursor: pointer;">
-                <div class="item-icon" style="width: 48px; height: 48px; min-width: 48px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🌬️</div>
-                <div class="item-content" style="flex: 1;">
-                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Area Compressor</h4>
-                    <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Sistem Kompresor</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- TPM INPUT SCREEN -->
-    <!-- ============================================ -->
-    <div id="tpmInputScreen" class="screen">
-        <div class="screen-header glass" style="background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(148, 163, 184, 0.2); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
-            <button class="btn-icon" onclick="navigateTo('tpmScreen')" style="width: 40px; height: 40px; border-radius: 10px; border: none; background: transparent; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-            </button>
-            <div class="header-title-group" style="text-align: center; flex: 1;">
-                <h2 id="tpmInputTitle" style="font-size: 1.125rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">TPM Check</h2>
-                <span id="tpmInputUser" style="font-size: 0.75rem; color: #94a3b8; display: block;">-</span>
-            </div>
-            <div style="width: 40px;"></div>
-        </div>
-
-        <div class="form-container" style="padding: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom));">
-            <input type="file" id="tpmCamera" accept="image/*" capture="environment" style="display: none;">
-            
-            <div class="photo-card glass" id="tpmPhotoSection" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 20px; padding: 20px; margin-bottom: 16px;">
-                <div class="photo-preview" id="tpmPhotoPreview" style="height: 200px; background: #1e293b; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; overflow: hidden;">
-                    <div class="photo-placeholder" style="text-align: center; color: #64748b;">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 8px;">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                            <circle cx="12" cy="13" r="4"/>
-                        </svg>
-                        <div>Ambil Foto</div>
-                    </div>
-                </div>
-                <button class="btn btn-camera" onclick="document.getElementById('tpmCamera').click()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9375rem;">
-                    <span>📷 Buka Kamera</span>
-                </button>
-            </div>
-
-            <div class="form-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 20px; padding: 20px; margin-bottom: 16px;">
-                <h3 class="form-section-title" style="font-size: 1rem; font-weight: 600; margin-bottom: 20px; color: #f8fafc;">Status Kondisi</h3>
-                
-                <div class="status-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
-                    <button class="status-btn" id="btnNormal" onclick="selectTPMStatus('normal')" style="padding: 16px 8px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; color: white; cursor: pointer; font-size: 0.8125rem; font-weight: 500; transition: all 0.2s;">
-                        <span class="status-dot" style="display: block; width: 12px; height: 12px; background: #10b981; border-radius: 50%; margin: 0 auto 8px;"></span>
-                        <div>Normal</div>
-                    </button>
-                    <button class="status-btn" id="btnAbnormal" onclick="selectTPMStatus('abnormal')" style="padding: 16px 8px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; color: white; cursor: pointer; font-size: 0.8125rem; font-weight: 500; transition: all 0.2s;">
-                        <span class="status-dot" style="display: block; width: 12px; height: 12px; background: #f59e0b; border-radius: 50%; margin: 0 auto 8px;"></span>
-                        <div>Abnormal</div>
-                    </button>
-                    <button class="status-btn" id="btnOff" onclick="selectTPMStatus('off')" style="padding: 16px 8px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; color: white; cursor: pointer; font-size: 0.8125rem; font-weight: 500; transition: all 0.2s;">
-                        <span class="status-dot" style="display: block; width: 12px; height: 12px; background: #ef4444; border-radius: 50%; margin: 0 auto 8px;"></span>
-                        <div>Off</div>
-                    </button>
+                    <span>Draft tersimpan otomatis</span>
                 </div>
 
-                <div class="form-field" style="margin-bottom: 20px;">
-                    <label for="tpmNotes" style="display: block; margin-bottom: 8px; color: #94a3b8; font-size: 0.875rem; font-weight: 500;">Keterangan / Temuan</label>
-                    <textarea id="tpmNotes" rows="3" placeholder="Deskripsikan kondisi area..." style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid #334155; border-radius: 12px; color: white; resize: vertical; font-family: inherit; font-size: 0.9375rem; outline: none;"></textarea>
-                </div>
-
-                <div class="form-field">
-                    <label for="tpmAction" style="display: block; margin-bottom: 8px; color: #94a3b8; font-size: 0.875rem; font-weight: 500;">Tindakan</label>
-                    <select id="tpmAction" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid #334155; border-radius: 12px; color: white; font-size: 0.9375rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 40px;">
-                        <option value="">Pilih tindakan...</option>
-                        <option value="Checking/Routine">Checking/Routine</option>
-                        <option value="Cleaning">Cleaning</option>
-                        <option value="Oiling/Lubrication">Oiling/Lubrication</option>
-                        <option value="Minor Repair">Minor Repair</option>
-                        <option value="Report to Maintenance">Report to Maintenance</option>
-                    </select>
-                </div>
-            </div>
-
-            <button class="btn btn-submit btn-full" onclick="submitTPMData()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);">
-                <span>💾 Simpan Data TPM</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- AREA LIST SCREEN -->
-    <!-- ============================================ -->
-    <div id="areaListScreen" class="screen">
-        <div class="screen-header glass" style="background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(148, 163, 184, 0.2); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
-            <button class="btn-icon" onclick="navigateTo('homeScreen')" style="width: 40px; height: 40px; border-radius: 10px; border: none; background: transparent; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-            </button>
-            <div class="header-title-group" style="text-align: center; flex: 1;">
-                <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Logsheet</h2>
-                <span class="header-subtitle" id="progressText" style="font-size: 0.75rem; color: #94a3b8; display: block;">0% Complete</span>
-            </div>
-            <div class="user-pill" style="display: flex; align-items: center; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border-radius: 20px; font-size: 0.75rem; color: #38bdf8; max-width: 120px; overflow: hidden;">
-                <span id="areaListUser" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
-            </div>
-        </div>
-
-        <div class="progress-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 16px; margin: 16px;">
-            <div class="progress-header" style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 8px; color: #cbd5e1;">
-                <span>Overall Progress</span>
-                <span class="progress-value" id="overallPercent" style="font-weight: 600; color: #38bdf8;">0%</span>
-            </div>
-            <div class="progress-bar-bg" style="width: 100%; height: 6px; background: #1e293b; border-radius: 9999px; overflow: hidden;">
-                <div class="progress-bar-fill" id="overallProgressBar" style="height: 100%; background: linear-gradient(90deg, #0ea5e9, #38bdf8); border-radius: 9999px; transition: width 0.3s ease; width: 0%;"></div>
-            </div>
-        </div>
-
-        <div class="areas-list" id="areaList" style="padding: 0 16px 100px;"></div>
-
-        <button class="btn btn-floating" id="submitBtn" onclick="sendToSheet()" style="display: none; position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); left: 16px; right: 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 16px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); z-index: 100;">
-            <span>📤 Kirim Data</span>
-        </button>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- PARAMETER INPUT SCREEN -->
-    <!-- ============================================ -->
-    <div id="paramScreen" class="screen">
-        <div class="screen-header glass" style="background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(148, 163, 184, 0.2); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
-            <button class="btn-icon" onclick="goBack()" style="width: 40px; height: 40px; border-radius: 10px; border: none; background: transparent; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-            </button>
-            <div class="step-badge" style="background: rgba(14, 165, 233, 0.1); padding: 6px 16px; border-radius: 20px;">
-                <span id="stepInfo" style="font-size: 0.875rem; font-weight: 600; color: #38bdf8;">1/10</span>
-            </div>
-            <div class="user-pill" style="display: flex; align-items: center; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border-radius: 20px; font-size: 0.75rem; color: #38bdf8; max-width: 100px; overflow: hidden;">
-                <span id="paramUser" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
-            </div>
-        </div>
-
-        <div class="param-container" style="padding: 16px; display: flex; flex-direction: column; min-height: calc(100vh - 80px);">
-            <div class="param-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 20px; padding: 24px; margin-bottom: 16px; flex: 1;">
-                <div class="param-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <span class="param-area" id="currentAreaName" style="font-size: 0.75rem; font-weight: 600; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">Area</span>
-                    <span class="param-counter" id="areaProgress" style="padding: 4px 12px; background: #1e293b; border-radius: 20px; font-size: 0.875rem; color: #94a3b8;">1/10</span>
-                </div>
-                
-                <h2 class="param-name" id="labelInput" style="font-size: 1.25rem; font-weight: 600; color: #f8fafc; margin-bottom: 32px; line-height: 1.4;">Parameter Name</h2>
-                
-                <div class="input-box" id="mainInputWrapper" style="display: flex; align-items: center; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 16px; overflow: hidden; margin-bottom: 32px;">
-                    <div class="input-field" id="inputFieldContainer" style="flex: 1; padding: 16px 20px;">
-                        <input type="text" id="valInput" inputmode="decimal" placeholder="0.00" autocomplete="off" style="width: 100%; background: transparent; border: none; color: #f8fafc; font-size: 1.5rem; font-weight: 600; outline: none;">
-                    </div>
-                    <div class="input-unit" id="unitDisplay" style="padding: 0 20px; background: rgba(14, 165, 233, 0.1); color: #38bdf8; font-weight: 700; font-size: 0.875rem; border-left: 2px solid rgba(148, 163, 184, 0.2); min-height: 64px; display: flex; align-items: center; white-space: nowrap;">--</div>
-                </div>
-
-                <div class="reference-box" style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #1e293b; border-radius: 12px;">
-                    <div class="ref-item" style="flex: 1; text-align: center;">
-                        <span class="ref-label" style="display: block; font-size: 0.6875rem; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Nilai Terakhir</span>
-                        <span class="ref-value" id="prevValDisplay" style="display: block; font-size: 1.25rem; font-weight: 700; color: #cbd5e1;">--</span>
-                    </div>
-                    <div class="ref-divider" style="width: 1px; height: 40px; background: rgba(148, 163, 184, 0.2);"></div>
-                    <div class="ref-item" style="flex: 1; text-align: center;">
-                        <span class="ref-label" style="display: block; font-size: 0.6875rem; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Update</span>
-                        <span class="ref-value" id="lastTimeLabel" style="display: block; font-size: 1.25rem; font-weight: 700; color: #cbd5e1;">--:--</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Status Abnormal Section -->
-            <div class="status-abnormal-card" id="statusAbnormalCard" style="margin: 0 0 16px; padding: 16px; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px;">
-                <div class="status-header" style="display: flex; align-items: center; gap: 8px; font-size: 0.875rem; font-weight: 600; color: #f87171; margin-bottom: 12px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                    </svg>
-                    <span>Kondisi Parameter</span>
-                </div>
-                
-                <div class="status-options" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    <label class="status-chip" data-status="ERROR" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(30, 41, 59, 0.8); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 20px; cursor: pointer; font-size: 0.8125rem; color: #94a3b8; user-select: none;">
-                        <input type="checkbox" name="paramStatus" value="ERROR" onchange="handleStatusChange(this)" style="display: none;">
-                        <span class="chip-icon">⚠️</span>
-                        <span class="chip-text">ERROR</span>
-                    </label>
-                    
-                    <label class="status-chip" data-status="UPPER" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(30, 41, 59, 0.8); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 20px; cursor: pointer; font-size: 0.8125rem; color: #94a3b8; user-select: none;">
-                        <input type="checkbox" name="paramStatus" value="UPPER" onchange="handleStatusChange(this)" style="display: none;">
-                        <span class="chip-icon">⬆️</span>
-                        <span class="chip-text">UPPER</span>
-                    </label>
-                    
-                    <label class="status-chip" data-status="NOT_INSTALLED" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(30, 41, 59, 0.8); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 20px; cursor: pointer; font-size: 0.8125rem; color: #94a3b8; user-select: none;">
-                        <input type="checkbox" name="paramStatus" value="NOT_INSTALLED" onchange="handleStatusChange(this)" style="display: none;">
-                        <span class="chip-icon">❌</span>
-                        <span class="chip-text">TIDAK TERPASANG</span>
-                    </label>
-                </div>
-                
-                <div class="status-note" id="statusNoteContainer" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(239, 68, 68, 0.1);">
-                    <input type="text" id="statusNote" placeholder="Keterangan masalah (opsional)..." maxlength="100" style="width: 100%; padding: 10px 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #f8fafc; font-size: 0.875rem; outline: none;">
-                </div>
-            </div>
-            
-            <div class="param-dots" id="progressDots" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; padding: 0 16px;"></div>
-
-            <div class="action-bar" style="display: flex; gap: 12px; padding-bottom: env(safe-area-inset-bottom);">
-                <button class="btn btn-secondary" onclick="goBack()" style="flex: 1; padding: 16px; background: #1e293b; color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9375rem;">
-                    <span>Kembali</span>
-                </button>
-                <button class="btn btn-primary btn-flex" onclick="saveStep()" style="flex: 2; padding: 16px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9375rem; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
-                    <span>Simpan</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- BALANCING INPUT SCREEN -->
-    <!-- ============================================ -->
-    <div id="balancingScreen" class="screen">
-        <div class="screen-header glass" style="background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(148, 163, 184, 0.2); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
-            <button class="btn-icon" onclick="navigateTo('homeScreen')" style="width: 40px; height: 40px; border-radius: 10px; border: none; background: transparent; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-            </button>
-            <div class="header-title-group" style="text-align: center; flex: 1;">
-                <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Input Balancing</h2>
-                <span class="header-subtitle" id="balancingShiftInfo" style="font-size: 0.75rem; color: #94a3b8; display: block;">Shift 3 • Auto Update</span>
-            </div>
-            <div class="user-pill" style="display: flex; align-items: center; padding: 4px 12px; background: rgba(14, 165, 233, 0.1); border-radius: 20px; font-size: 0.75rem; color: #38bdf8; max-width: 100px; overflow: hidden;">
-                <span id="balancingUser" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
-            </div>
-        </div>
-
-        <div class="form-container" style="padding: 16px; padding-bottom: calc(100px + env(safe-area-inset-bottom));">
-            <!-- Header Info Card -->
-            <div class="form-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div class="info-field" style="display: flex; flex-direction: column; gap: 4px;">
-                        <label style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Tanggal</label>
-                        <input type="date" id="balancingDate" readonly style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3); background: rgba(14, 165, 233, 0.1); color: #38bdf8; font-weight: 600; text-align: center;">
-                    </div>
-                    <div class="info-field" style="display: flex; flex-direction: column; gap: 4px;">
-                        <label style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Jam Update</label>
-                        <input type="time" id="balancingTime" readonly style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3); background: rgba(14, 165, 233, 0.1); color: #38bdf8; font-weight: 600; text-align: center;">
-                    </div>
-                </div>
-                <div style="margin-top: 12px; text-align: center;">
-                    <span class="shift-badge" id="currentShiftBadge" style="display: inline-block; padding: 4px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;">SHIFT 3</span>
-                </div>
-            </div>
-
-            <!-- Toolbar Buttons -->
-            <div class="balancing-toolbar" style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <button type="button" onclick="loadLastBalancingData()" class="btn-history" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74-2.74L3 12"/>
-                        <path d="M3 3v9h9"/>
-                    </svg>
-                    <span>Data Terakhir</span>
-                </button>
-
-                <button type="button" onclick="resetBalancingForm()" class="btn-reset" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                    </svg>
-                    <span>Reset Form</span>
-                </button>
-            </div>
-
-            <!-- Draft Status Indicator -->
-            <div id="draftStatusIndicator" style="display: none; margin-bottom: 16px; padding: 10px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; font-size: 12px; color: #34d399; align-items: center; gap: 8px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <polyline points="10 9 9 9 8 9"/>
-                </svg>
-                <span>Draft tersimpan otomatis</span>
-            </div>
-
-            <!-- Output Power STG 17,5 -->
-            <div class="form-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
-                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Output Power STG 17,5 MW</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div class="form-field">
-                        <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">Load (MW)</label>
-                        <input type="number" id="loadMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 1rem; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label id="eksporLabel" style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px; transition: color 0.3s;">Ekspor (MW)</label>
-                        <input type="number" id="eksporMW" step="0.001" placeholder="0.000" oninput="handleEksporInput(this)" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 1rem; outline: none; transition: all 0.3s;">
-                        <small id="eksporHint" style="display: block; margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">
-                            💡 <strong>Minus (-) = Ekspor</strong> | <strong>Plus (+) = Impor</strong>
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Balance Power SCADA -->
-            <div class="form-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
-                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Balance Power SCADA (MW)</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                    <div class="form-field">
-                        <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">PLN</label>
-                        <input type="number" id="plnMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">UBB</label>
-                        <input type="number" id="ubbMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">PIE</label>
-                        <input type="number" id="pieMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">TG-65</label>
-                        <input type="number" id="tg65MW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">TG-66</label>
-                        <input type="number" id="tg66MW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">GTG</label>
-                        <input type="number" id="gtgMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Konsumsi Power 3B -->
-            <div class="form-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
-                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Konsumsi Power 3B</h3>
-                
-                <div class="form-field" style="margin-bottom: 12px;">
-                    <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">SS-6500 (TR-Main 01) (MW)</label>
-                    <input type="number" id="ss6500MW" step="0.001" placeholder="0.000" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 1rem; outline: none;">
-                </div>
-
-                <div style="background: rgba(15, 23, 42, 0.4); border-radius: 12px; padding: 12px; margin: 12px 0; border: 1px solid rgba(148, 163, 184, 0.2);">
-                    <div class="form-field" style="margin-bottom: 12px;">
-                        <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">SS-2000 Via</label>
-                        <select id="ss2000Via" onchange="toggleSS2000Detail()" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.9375rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 40px;">
-                            <option value="TR-Main01">TR-Main 01</option>
-                            <option value="TR-Main02">TR-Main 02</option>
-                        </select>
-                    </div>
-                    
-                    <div id="ss2000Detail" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div class="form-field">
-                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Active Power (MW)</label>
-                                <input type="number" id="activePowerMW" step="0.001" placeholder="0.000" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                            </div>
-                            <div class="form-field">
-                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Reactive Power (MVAR)</label>
-                                <input type="number" id="reactivePowerMVAR" step="0.001" placeholder="0.000" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                            </div>
-                            <div class="form-field">
-                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Current S (A)</label>
-                                <input type="number" id="currentS" step="0.1" placeholder="0.0" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                            </div>
-                            <div class="form-field">
-                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Voltage (V)</label>
-                                <input type="number" id="voltageV" step="1" placeholder="0" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
-                            <div class="form-field">
-                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">HVS65 L02 (MW)</label>
-                                <input type="number" id="hvs65l02MW" step="0.001" placeholder="0.000" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                            </div>
-                            <div class="form-field">
-                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">HVS65 L02 (A)</label>
-                                <input type="number" id="hvs65l02Current" step="0.1" placeholder="0.0" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-field" style="margin-top: 16px;">
-                    <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">Total 3B (MW)</label>
-                    <input type="number" id="total3BMW" step="0.001" placeholder="0.000" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 1rem; outline: none;">
-                </div>
-            </div>
-
-            <!-- Produksi & Konsumsi Steam -->
-            <div class="form-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
-                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Produksi & Konsumsi Steam</h3>
-                
-                <div class="form-field" style="margin-bottom: 12px;">
-                    <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">Produksi Steam SA - FQ-1105 (t/h)</label>
-                    <input type="number" id="fq1105" step="0.1" placeholder="0.0" oninput="calculateLPBalance()" style="width: 100%; padding: 12px; background: rgba(14, 165, 233, 0.1); border: 2px solid #0ea5e9; color: white; font-size: 1rem; border-radius: 8px; outline: none;">
-                </div>
-
-                <div style="background: rgba(15, 23, 42, 0.4); border-radius: 12px; padding: 12px; margin: 12px 0; border: 1px solid rgba(148, 163, 184, 0.2);">
-                    <h4 style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 12px; margin-top: 0;">Konsumsi Steam 3B (t/h)</h4>
-                    
+                <!-- Output Power -->
+                <div class="glass" style="border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Output Power STG 17,5 MW</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">STG 17,5</label>
-                            <input type="number" id="stgSteam" step="0.1" placeholder="0.0" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        <div>
+                            <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">Load (MW)</label>
+                            <input type="number" id="loadMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 1rem; outline: none;">
                         </div>
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">PA2</label>
-                            <input type="number" id="pa2Steam" step="0.1" placeholder="0.0" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        <div>
+                            <label id="eksporLabel" style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px; transition: color 0.3s;">Ekspor (MW)</label>
+                            <input type="number" id="eksporMW" step="0.001" placeholder="0.000" oninput="handleEksporInput(this)" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 1rem; outline: none; transition: all 0.3s;">
+                            <small id="eksporHint" style="display: block; margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">
+                                💡 <strong>Minus (-) = Ekspor</strong> | <strong>Plus (+) = Impor</strong>
+                            </small>
                         </div>
                     </div>
+                </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;">
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Melter SA2</label>
-                            <select id="melterSA2" onchange="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 30px;">
-                                <option value="0">0</option>
-                                <option value="5">5</option>
-                                <option value="7.5" selected>7.5</option>
+                <!-- Balance Power SCADA -->
+                <div class="glass" style="border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Balance Power SCADA (MW)</h3>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">PLN</label>
+                            <input type="number" id="plnMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">UBB</label>
+                            <input type="number" id="ubbMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">PIE</label>
+                            <input type="number" id="pieMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">TG-65</label>
+                            <input type="number" id="tg65MW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">TG-66</label>
+                            <input type="number" id="tg66MW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">GTG</label>
+                            <input type="number" id="gtgMW" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Konsumsi Power 3B -->
+                <div class="glass" style="border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Konsumsi Power 3B</h3>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">SS-6500 (TR-Main 01) (MW)</label>
+                        <input type="number" id="ss6500MW" step="0.001" placeholder="0.000" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 1rem; outline: none;">
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.4); border-radius: 12px; padding: 12px; margin: 12px 0; border: 1px solid var(--border);">
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">SS-2000 Via</label>
+                            <select id="ss2000Via" onchange="toggleSS2000Detail()" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.9375rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 40px;">
+                                <option value="TR-Main01">TR-Main 01</option>
+                                <option value="TR-Main02">TR-Main 02</option>
                             </select>
                         </div>
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Ejector</label>
-                            <select id="ejectorSteam" onchange="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 30px;">
-                                <option value="0">0</option>
-                                <option value="2.5" selected>2.5</option>
-                            </select>
-                        </div>
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Gland Seal</label>
-                            <select id="glandSealSteam" onchange="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 30px;">
-                                <option value="0">0</option>
-                                <option value="1" selected>1</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Puri2</label>
-                            <input type="number" id="puri2Steam" step="0.1" value="1.4" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                        </div>
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Deaerator</label>
-                            <input type="number" id="deaeratorSteam" step="0.1" value="2.5" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                        </div>
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Dump Condenser</label>
-                            <input type="number" id="dumpCondenser" step="0.1" value="5.0" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
-                        </div>
-                        <div class="form-field">
-                            <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">PCV-6105</label>
-                            <input type="number" id="pcv6105" step="0.1" value="0.0" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                        
+                        <div id="ss2000Detail" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div>
+                                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Active Power (MW)</label>
+                                    <input type="number" id="activePowerMW" step="0.001" placeholder="0.000" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Reactive Power (MVAR)</label>
+                                    <input type="number" id="reactivePowerMVAR" step="0.001" placeholder="0.000" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Current S (A)</label>
+                                    <input type="number" id="currentS" step="0.1" placeholder="0.0" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Voltage (V)</label>
+                                    <input type="number" id="voltageV" step="1" placeholder="0" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                                <div>
+                                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">HVS65 L02 (MW)</label>
+                                    <input type="number" id="hvs65l02MW" step="0.001" placeholder="0.000" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">HVS65 L02 (A)</label>
+                                    <input type="number" id="hvs65l02Current" step="0.1" placeholder="0.0" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div style="border: 1px dashed #0ea5e9; margin: 12px 0; padding: 12px; background: rgba(14, 165, 233, 0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.875rem; color: #94a3b8;">Total Konsumsi:</span>
-                        <span id="totalKonsumsiSteam" style="font-weight: 700; color: #38bdf8; font-size: 1rem;">0.0 t/h</span>
+                    <div style="margin-top: 16px;">
+                        <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">Total 3B (MW)</label>
+                        <input type="number" id="total3BMW" step="0.001" placeholder="0.000" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 1rem; outline: none;">
                     </div>
                 </div>
 
-                <div id="lpBalanceField" style="margin-top: 16px; padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
-                    <label id="lpBalanceLabel" style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">LPS Ekspor ke SU 3A (t/h)</label>
-                    <input type="number" id="lpBalanceValue" step="0.1" readonly style="width: 100%; padding: 12px; background: rgba(16, 185, 129, 0.1); border: 2px solid #10b981; color: #10b981; font-weight: 700; font-size: 1.125rem; border-radius: 8px; outline: none;">
-                    <small id="lpBalanceStatus" style="display: block; margin-top: 4px; color: #10b981; font-size: 0.75rem;">Posisi: Ekspor ke 3A</small>
+                <!-- Produksi & Konsumsi Steam -->
+                <div class="glass" style="border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Produksi & Konsumsi Steam</h3>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">Produksi Steam SA - FQ-1105 (t/h)</label>
+                        <input type="number" id="fq1105" step="0.1" placeholder="0.0" oninput="calculateLPBalance()" style="width: 100%; padding: 12px; background: rgba(14, 165, 233, 0.1); border: 2px solid var(--primary); color: white; font-size: 1rem; border-radius: 8px; outline: none;">
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.4); border-radius: 12px; padding: 12px; margin: 12px 0; border: 1px solid var(--border);">
+                        <h4 style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 12px; margin-top: 0;">Konsumsi Steam 3B (t/h)</h4>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">STG 17,5</label>
+                                <input type="number" id="stgSteam" step="0.1" placeholder="0.0" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">PA2</label>
+                                <input type="number" id="pa2Steam" step="0.1" placeholder="0.0" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;">
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Melter SA2</label>
+                                <select id="melterSA2" onchange="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 30px;">
+                                    <option value="0">0</option>
+                                    <option value="5">5</option>
+                                    <option value="7.5" selected>7.5</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Ejector</label>
+                                <select id="ejectorSteam" onchange="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 30px;">
+                                    <option value="0">0</option>
+                                    <option value="2.5" selected>2.5</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Gland Seal</label>
+                                <select id="glandSealSteam" onchange="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none; appearance: none; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 30px;">
+                                    <option value="0">0</option>
+                                    <option value="1" selected>1</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Puri2</label>
+                                <input type="number" id="puri2Steam" step="0.1" value="1.4" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Deaerator</label>
+                                <input type="number" id="deaeratorSteam" step="0.1" value="2.5" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Dump Condenser</label>
+                                <input type="number" id="dumpCondenser" step="0.1" value="5.0" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">PCV-6105</label>
+                                <input type="number" id="pcv6105" step="0.1" value="0.0" oninput="calculateLPBalance()" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; font-size: 0.875rem; outline: none;">
+                            </div>
+                        </div>
+
+                        <div style="border: 1px dashed var(--primary); margin: 12px 0; padding: 12px; background: rgba(14, 165, 233, 0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.875rem; color: #94a3b8;">Total Konsumsi:</span>
+                            <span id="totalKonsumsiSteam" style="font-weight: 700; color: var(--secondary); font-size: 1rem;">0.0 t/h</span>
+                        </div>
+                    </div>
+
+                    <div id="lpBalanceField" style="margin-top: 16px; padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
+                        <label id="lpBalanceLabel" style="display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 4px;">LPS Ekspor ke SU 3A (t/h)</label>
+                        <input type="number" id="lpBalanceValue" step="0.1" readonly style="width: 100%; padding: 12px; background: rgba(16, 185, 129, 0.1); border: 2px solid var(--success); color: var(--success); font-weight: 700; font-size: 1.125rem; border-radius: 8px; outline: none;">
+                        <small id="lpBalanceStatus" style="display: block; margin-top: 4px; color: var(--success); font-size: 0.75rem;">Posisi: Ekspor ke 3A</small>
+                    </div>
+                </div>
+
+                <!-- Monitoring -->
+                <div class="glass" style="border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Monitoring</h3>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Steam Extraction PI-6122 (kg/cm²)</label>
+                            <input type="number" id="pi6122" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                            <label style="margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">TI-6112 (°C)</label>
+                            <input type="number" id="ti6112" step="0.1" placeholder="0.0" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Temp. Cooling Air Inlet TI-6146/47 (°C)</label>
+                            <input type="number" id="ti6146" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Temp. Lube Oil TI-6126 (°C)</label>
+                            <input type="number" id="ti6126" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Axial Displacement (mm)</label>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="number" id="axialDisplacement" step="0.01" placeholder="0.00" style="flex: 1; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                                <span style="padding: 4px 8px; background: rgba(239, 68, 68, 0.1); color: var(--error); border-radius: 4px; font-size: 0.6875rem; font-weight: 600; white-space: nowrap;">High: 0.6</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Vibrasi VI-6102 (μm)</label>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="number" id="vi6102" step="0.01" placeholder="0.00" style="flex: 1; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                                <span style="padding: 4px 8px; background: rgba(239, 68, 68, 0.1); color: var(--error); border-radius: 4px; font-size: 0.6875rem; font-weight: 600; white-space: nowrap;">High: 85</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Temp. Journal Bearing TE-6134 (°C)</label>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="number" id="te6134" step="0.1" placeholder="0.0" style="flex: 1; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                                <span style="padding: 4px 8px; background: rgba(239, 68, 68, 0.1); color: var(--error); border-radius: 4px; font-size: 0.6875rem; font-weight: 600; white-space: nowrap;">High: 115</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">CT SU - Fan</label>
+                            <input type="number" id="ctSuFan" value="4" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">CT SU - Pompa</label>
+                            <input type="number" id="ctSuPompa" value="2" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">CT SA - Fan</label>
+                            <input type="number" id="ctSaFan" value="3" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">CT SA - Pompa</label>
+                            <input type="number" id="ctSaPompa" value="2" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kegiatan Shift -->
+                <div class="glass" style="border-radius: 16px; padding: 16px; margin-bottom: 24px;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: #f8fafc;">Kegiatan Shift <span id="kegiatanShiftNum">3</span></h3>
+                    <div>
+                        <textarea id="kegiatanShift" rows="4" placeholder="Masukkan kegiatan shift..." style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid var(--border); border-radius: 8px; color: white; resize: vertical; font-family: inherit; font-size: 0.9375rem; outline: none;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
+                    <button onclick="submitBalancingData()" style="width: 100%; padding: 18px; background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span>Simpan Data Balancing</span>
+                    </button>
                 </div>
             </div>
-
-            <!-- Monitoring -->
-            <div class="form-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
-                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #f8fafc;">Monitoring</h3>
-                
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                    <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Steam Extraction PI-6122 (kg/cm²)</label>
-                        <input type="number" id="pi6122" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                        <label style="margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">TI-6112 (°C)</label>
-                        <input type="number" id="ti6112" step="0.1" placeholder="0.0" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                    </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Temp. Cooling Air Inlet TI-6146/47 (°C)</label>
-                        <input type="number" id="ti6146" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                    </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Temp. Lube Oil TI-6126 (°C)</label>
-                        <input type="number" id="ti6126" step="0.01" placeholder="0.00" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                    </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Axial Displacement (mm)</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="number" id="axialDisplacement" step="0.01" placeholder="0.00" style="flex: 1; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                            <span style="padding: 4px 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 4px; font-size: 0.6875rem; font-weight: 600; white-space: nowrap;">High: 0.6</span>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Vibrasi VI-6102 (μm)</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="number" id="vi6102" step="0.01" placeholder="0.00" style="flex: 1; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                            <span style="padding: 4px 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 4px; font-size: 0.6875rem; font-weight: 600; white-space: nowrap;">High: 85</span>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Temp. Journal Bearing TE-6134 (°C)</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="number" id="te6134" step="0.1" placeholder="0.0" style="flex: 1; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                            <span style="padding: 4px 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 4px; font-size: 0.6875rem; font-weight: 600; white-space: nowrap;">High: 115</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
-                    <div class="form-field">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">CT SU - Fan</label>
-                        <input type="number" id="ctSuFan" value="4" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">CT SU - Pompa</label>
-                        <input type="number" id="ctSuPompa" value="2" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">CT SA - Fan</label>
-                        <input type="number" id="ctSaFan" value="3" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                    </div>
-                    <div class="form-field">
-                        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">CT SA - Pompa</label>
-                        <input type="number" id="ctSaPompa" value="2" min="0" max="10" style="width: 100%; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: white; outline: none;">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Kegiatan Shift -->
-            <div class="form-card glass" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px; padding: 16px; margin-bottom: 24px;">
-                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: #f8fafc;">Kegiatan Shift <span id="kegiatanShiftNum">3</span></h3>
-                <div class="form-field">
-                    <textarea id="kegiatanShift" rows="4" placeholder="Masukkan kegiatan shift..." style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: white; resize: vertical; font-family: inherit; font-size: 0.9375rem; outline: none;"></textarea>
-                </div>
-            </div>
-
-            <!-- Tombol Simpan -->
-            <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
-                <button class="btn btn-submit btn-full" onclick="submitBalancingData()" style="width: 100%; padding: 18px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
+        </div>
+        
+        <!-- UPLOAD PROGRESS OVERLAY -->
+        <div id="uploadProgressOverlay" class="upload-overlay" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; z-index: 10002; opacity: 0; visibility: hidden; transition: all 0.3s ease;">
+            <div style="text-align: center; padding: 32px; max-width: 320px; width: 100%;">
+                <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 24px;">
+                    <svg width="120" height="120" style="transform: rotate(-90deg);">
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(148, 163, 184, 0.2)" stroke-width="6"/>
+                        <circle id="progressRingFill" cx="60" cy="60" r="54" fill="none" stroke="#0ea5e9" stroke-width="6" stroke-linecap="round" stroke-dasharray="339.292" stroke-dashoffset="339.292" style="transition: stroke-dashoffset 0.3s ease;"/>
                     </svg>
-                    <span>Simpan Data Balancing</span>
+                    <div id="progressPercentage" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: 700; color: #f8fafc; text-shadow: 0 0 20px rgba(14, 165, 233, 0.5);">0%</div>
+                    <div id="uploadTurbine" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0; transition: opacity 0.3s;">
+                        <svg width="40" height="40" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="8" fill="#0ea5e9"/>
+                            <ellipse cx="50" cy="25" rx="6" ry="20" fill="#38bdf8" opacity="0.8"/>
+                            <ellipse cx="72" cy="38" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(60 72 38)"/>
+                            <ellipse cx="72" cy="62" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(120 72 62)"/>
+                            <ellipse cx="50" cy="75" rx="6" ry="20" fill="#38bdf8" opacity="0.8"/>
+                            <ellipse cx="28" cy="62" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(60 28 62)"/>
+                            <ellipse cx="28" cy="38" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(120 28 38)"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 id="uploadStatusText" style="font-size: 1.125rem; font-weight: 600; color: #f8fafc; margin-bottom: 20px; min-height: 28px;">Mengupload Data...</h3>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px;">
+                        <div class="step active" id="step1" style="display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 1; transition: all 0.3s ease;">
+                            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(14, 165, 233, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #0ea5e9; border: 2px solid #0ea5e9; box-shadow: 0 0 10px rgba(14, 165, 233, 0.3);">1</div>
+                            <span style="font-size: 0.6875rem; color: #94a3b8; font-weight: 500;">Menyiapkan</span>
+                        </div>
+                        <div id="stepLine1" style="width: 24px; height: 2px; background: rgba(148, 163, 184, 0.2); border-radius: 1px; transition: all 0.3s ease;"></div>
+                        <div class="step" id="step2" style="display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0.4; transition: all 0.3s ease;">
+                            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(148, 163, 184, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #94a3b8; border: 2px solid transparent;">2</div>
+                            <span style="font-size: 0.6875rem; color: #94a3b8; font-weight: 500;">Mengirim</span>
+                        </div>
+                        <div id="stepLine2" style="width: 24px; height: 2px; background: rgba(148, 163, 184, 0.2); border-radius: 1px; transition: all 0.3s ease;"></div>
+                        <div class="step" id="step3" style="display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0.4; transition: all 0.3s ease;">
+                            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(148, 163, 184, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #94a3b8; border: 2px solid transparent;">3</div>
+                            <span style="font-size: 0.6875rem; color: #94a3b8; font-weight: 500;">Menyimpan</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="cancelUploadBtn" onclick="cancelUpload()" style="display: none; padding: 10px 20px; background: transparent; color: #64748b; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.875rem;">
+                    Batal
                 </button>
             </div>
         </div>
-    </div>
-    
-    <!-- ============================================ -->
-    <!-- UPLOAD PROGRESS OVERLAY -->
-    <!-- ============================================ -->
-    <div id="uploadProgressOverlay" class="upload-overlay hidden" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 10002; opacity: 0; visibility: hidden; transition: all 0.3s ease;">
-        <div class="upload-content" style="text-align: center; padding: 32px; max-width: 320px; width: 100%;">
-            <div class="progress-ring-container" style="position: relative; width: 120px; height: 120px; margin: 0 auto 24px;">
-                <svg class="progress-ring" width="120" height="120" style="transform: rotate(-90deg);">
-                    <circle class="progress-ring-bg" cx="60" cy="60" r="54" fill="none" stroke="rgba(148, 163, 184, 0.2)" stroke-width="6"/>
-                    <circle class="progress-ring-fill" id="progressRingFill" cx="60" cy="60" r="54" fill="none" stroke="#0ea5e9" stroke-width="6" stroke-linecap="round" stroke-dasharray="339.292" stroke-dashoffset="339.292" style="transition: stroke-dashoffset 0.3s ease;"/>
-                </svg>
-                <div class="progress-percentage" id="progressPercentage" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: 700; color: #f8fafc; text-shadow: 0 0 20px rgba(14, 165, 233, 0.5);">0%</div>
-                <div class="turbine-mini" id="uploadTurbine" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0; transition: opacity 0.3s;">
-                    <svg width="40" height="40" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="8" fill="#0ea5e9"/>
-                        <ellipse cx="50" cy="25" rx="6" ry="20" fill="#38bdf8" opacity="0.8"/>
-                        <ellipse cx="72" cy="38" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(60 72 38)"/>
-                        <ellipse cx="72" cy="62" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(120 72 62)"/>
-                        <ellipse cx="50" cy="75" rx="6" ry="20" fill="#38bdf8" opacity="0.8"/>
-                        <ellipse cx="28" cy="62" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(60 28 62)"/>
-                        <ellipse cx="28" cy="38" rx="6" ry="20" fill="#38bdf8" opacity="0.8" transform="rotate(120 28 38)"/>
-                    </svg>
-                </div>
-            </div>
-            
-            <div class="upload-status">
-                <h3 id="uploadStatusText" style="font-size: 1.125rem; font-weight: 600; color: #f8fafc; margin-bottom: 20px; min-height: 28px;">Mengupload Data...</h3>
-                <div class="upload-steps" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px;">
-                    <div class="step active" id="step1" style="display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 1; transition: all 0.3s ease;">
-                        <div class="step-icon" style="width: 28px; height: 28px; border-radius: 50%; background: rgba(14, 165, 233, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #0ea5e9; border: 2px solid #0ea5e9; box-shadow: 0 0 10px rgba(14, 165, 233, 0.3);">1</div>
-                        <span style="font-size: 0.6875rem; color: #94a3b8; font-weight: 500;">Menyiapkan</span>
-                    </div>
-                    <div class="step-line" id="stepLine1" style="width: 24px; height: 2px; background: rgba(148, 163, 184, 0.2); border-radius: 1px; transition: all 0.3s ease;"></div>
-                    <div class="step" id="step2" style="display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0.4; transition: all 0.3s ease;">
-                        <div class="step-icon" style="width: 28px; height: 28px; border-radius: 50%; background: rgba(148, 163, 184, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #94a3b8; border: 2px solid transparent;">2</div>
-                        <span style="font-size: 0.6875rem; color: #94a3b8; font-weight: 500;">Mengirim</span>
-                    </div>
-                    <div class="step-line" id="stepLine2" style="width: 24px; height: 2px; background: rgba(148, 163, 184, 0.2); border-radius: 1px; transition: all 0.3s ease;"></div>
-                    <div class="step" id="step3" style="display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0.4; transition: all 0.3s ease;">
-                        <div class="step-icon" style="width: 28px; height: 28px; border-radius: 50%; background: rgba(148, 163, 184, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #94a3b8; border: 2px solid transparent;">3</div>
-                        <span style="font-size: 0.6875rem; color: #94a3b8; font-weight: 500;">Menyimpan</span>
-                    </div>
-                </div>
-            </div>
-            
-            <button id="cancelUploadBtn" class="btn-cancel-upload" onclick="cancelUpload()" style="display: none; padding: 10px 20px; background: transparent; color: #64748b; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; cursor: pointer; font-size: 0.875rem;">
-                Batal
-            </button>
-        </div>
+
     </div>
 
-</div>
-
-<!-- ============================================ -->
-<!-- JAVASCRIPT -->
-<!-- ============================================ -->
-<script src="app.js?v=2.0.1"></script>
-
+    <script src="app.js?v=2.1.0"></script>
 </body>
 </html>
