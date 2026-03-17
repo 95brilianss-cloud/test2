@@ -3,7 +3,7 @@
 // Version: 2.1.0-SUPERSIMPLE (Plaintext Edition)
 // ============================================
 
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.1.1';
 const GAS_URL = "https://script.google.com/macros/s/AKfycbwD12PHnUtFcu3yaUAyFKMn-qLt3zS90woo7sWIdj9IZf4vavZoTC8P3UGukeyVH_Lk/exec"; // ⚠️ GANTI DENGAN URL DEPLOYMENT ANDA
 
 // ============================================
