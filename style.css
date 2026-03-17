@@ -1772,3 +1772,36 @@ html {
 .modal-overlay:not(.hidden) .modal-card {
     transform: scale(1) translateY(0);
 }
+/* PERBAIKAN KONTRAS INPUT - Prioritas Tinggi */
+#valInput,
+.input-field input,
+input[type="text"],
+input[type="number"] {
+    color: #0f172a !important; /* Warna teks HITAM/GELAP */
+    background-color: #ffffff !important; /* Background putih solid */
+    -webkit-text-fill-color: #0f172a !important; /* Fix untuk iOS */
+    caret-color: #0ea5e9 !important; /* Kursor biru */
+}
+
+/* Placeholder tetap abu-abu */
+#valInput::placeholder,
+input::placeholder {
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
+}
+
+/* Container input box */
+#mainInputWrapper,
+.input-box {
+    background: #ffffff !important;
+    border: 2px solid #0ea5e9 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
+/* Unit display tetap terlihat */
+#unitDisplay,
+.input-unit {
+    background: #f1f5f9 !important;
+    color: #0ea5e9 !important;
+    border-left: 2px solid #e2e8f0 !important;
+}
