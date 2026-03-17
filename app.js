@@ -6,7 +6,7 @@
 // ============================================
 // CONFIGURATION & CONSTANTS
 // ============================================
-const APP_VERSION = '2.0.6';
+const APP_VERSION = '2.0.7';
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz7U2Uu3JzASLs40vyqjmUziSdvwOCOiNu7e4qes1B0Ot3o1rIzVrPsdPCkcl3w00twFg/exec"; // GANTI DENGAN URL DEPLOYMENT ANDA
 
 const AUTH_CONFIG = {
@@ -765,7 +765,7 @@ function loadUserStats() {
 }
 
 // ============================================
-// USER MANAGEMENT UI - FIXED VERSION
+// USER MANAGEMENT UI - CLEAN VERSION
 // ============================================
 
 function setupAdminMenu() {
@@ -814,34 +814,20 @@ function setupAdminMenu() {
     console.log('Admin menu button added');
 }
 
-// ============================================
-// MODAL FUNCTIONS - FIXED
-// ============================================
-
 function openAddUserModal() {
-    console.log('🟢 Opening add user modal...');
+    console.log('Opening add user modal...');
     
-    // Cek apakah admin
-    if (!currentUser) {
-        console.error('❌ No current user');
-        showCustomAlert('Silakan login terlebih dahulu!', 'error');
-        return;
-    }
-    
-    if (currentUser.role !== 'admin') {
-        console.error('❌ Not admin:', currentUser.role);
+    if (!currentUser || currentUser.role !== 'admin') {
         showCustomAlert('Hanya admin yang dapat menambah user!', 'error');
         return;
     }
     
     const modal = document.getElementById('addUserModal');
     if (!modal) {
-        console.error('❌ Modal element not found');
+        console.error('Modal not found!');
         showCustomAlert('Error: Modal tidak ditemukan', 'error');
         return;
     }
-    
-    console.log('✅ Modal found, showing...');
     
     // Reset form
     document.getElementById('newUsername').value = '';
@@ -849,35 +835,49 @@ function openAddUserModal() {
     document.getElementById('newName').value = '';
     document.getElementById('newRole').value = 'operator';
     
-    // Hide error
     const errorDiv = document.getElementById('addUserError');
-    if (errorDiv) errorDiv.style.display = 'none';
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+    }
     
-    // Show modal - REMOVE hidden class
+    // Show modal
     modal.classList.remove('hidden');
     
     // Focus username
     setTimeout(() => {
-        const usernameInput = document.getElementById('newUsername');
-        if (usernameInput) usernameInput.focus();
+        document.getElementById('newUsername').focus();
     }, 100);
-    
-    console.log('✅ Modal opened');
 }
 
 function closeAddUserModal() {
-    console.log('🔴 Closing modal...');
     const modal = document.getElementById('addUserModal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }
-}
-
-async function submitNewUser() {
-    console.log('📝 Submitting new user...');
+    if (modal) modal.classList.add('hidden');
+    
+    // Reset form fields
+    ['newUsername', 'newPassword', 'newName'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    
+    const role = document.getElementById('newRole');
+    if (role) role.value = 'operator';
     
     const errorDiv = document.getElementById('addUserError');
     if (errorDiv) errorDiv.style.display = 'none';
+}
+
+async function submitNewUser() {
+    console.log('Submitting new user...');
+    
+    const errorDiv = document.getElementById('addUserError');
+    if (errorDiv) errorDiv.style.display = 'none';
+    
+    // Validasi admin session
+    if (!currentUser || currentUser.role !== 'admin') {
+        showCustomAlert('Sesi admin tidak valid!', 'error');
+        return;
+    }
     
     // Get values
     const username = document.getElementById('newUsername').value.trim().toLowerCase();
@@ -885,7 +885,7 @@ async function submitNewUser() {
     const name = document.getElementById('newName').value.trim();
     const role = document.getElementById('newRole').value;
     
-    console.log('Form data:', { username, name, role });
+    console.log('Form data:', { username, name, role, passwordLength: password.length });
     
     // Validation
     if (!username || !password || !name) {
@@ -903,14 +903,14 @@ async function submitNewUser() {
         return;
     }
     
-    // Check existing
+    // Check if exists
     const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
     if (users[username]) {
         showError('Username sudah terdaftar!');
         return;
     }
     
-    // Create user
+    // Create user object
     const newUser = {
         password: password,
         role: role,
@@ -922,42 +922,46 @@ async function submitNewUser() {
         isDefault: false
     };
     
-    // Save
+    console.log('Creating user:', newUser);
+    
+    // Save to localStorage
     users[username] = newUser;
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
     
-    console.log('✅ User saved:', newUser);
+    // Log activity
+    logActivity('USER_ADDED', username, `Added by ${currentUser.name}`);
     
-    // Success
+    // Sync to cloud (optional - don't block)
+    if (navigator.onLine) {
+        try {
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'USER_ADD',
+                    adminUsername: currentUser.username,
+                    adminPassword: getCurrentUserPassword(),
+                    username, password, name, role, department: 'Unit Utilitas 3B'
+                })
+            }).catch(e => console.log('Cloud sync failed:', e));
+        } catch (e) {}
+    }
+    
     showCustomAlert(`✓ User ${name} berhasil ditambahkan!`, 'success');
     closeAddUserModal();
     renderUserManagement();
     
     function showError(msg) {
-        console.error('❌ Error:', msg);
         if (errorDiv) {
             errorDiv.textContent = msg;
             errorDiv.style.display = 'block';
+            errorDiv.style.animation = 'shake 0.5s ease';
+        } else {
+            showCustomAlert(msg, 'error');
         }
     }
 }
-
-// Close modal when clicking outside
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('addUserModal');
-    if (modal && !modal.classList.contains('hidden')) {
-        if (e.target === modal) {
-            closeAddUserModal();
-        }
-    }
-});
-
-// Escape key to close
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeAddUserModal();
-    }
-});
 
 function renderUserManagement() {
     console.log('Rendering user management...');
@@ -1081,48 +1085,6 @@ function confirmDeleteUser(username, name) {
             showCustomAlert('User berhasil dihapus', 'success');
             renderUserManagement();
         }
-    }
-}
-
-function openAddUserModal() {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    document.getElementById('addUserModal').classList.remove('hidden');
-    document.getElementById('newUsername').focus();
-}
-
-function closeAddUserModal() {
-    document.getElementById('addUserModal').classList.add('hidden');
-    ['newUsername', 'newPassword', 'newName'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-    document.getElementById('newRole').value = 'operator';
-}
-
-async function submitNewUser() {
-    const username = document.getElementById('newUsername').value.trim().toLowerCase();
-    const password = document.getElementById('newPassword').value;
-    const name = document.getElementById('newName').value.trim();
-    const role = document.getElementById('newRole').value;
-    
-    if (!username || !password || !name) {
-        showCustomAlert('Semua field wajib diisi', 'error');
-        return;
-    }
-    
-    if (username.length < 3) {
-        showCustomAlert('Username minimal 3 karakter', 'error');
-        return;
-    }
-    
-    if (password.length < 6) {
-        showCustomAlert('Password minimal 6 karakter', 'error');
-        return;
-    }
-    
-    if (await addUser({ username, password, name, role, department: 'Unit Utilitas 3B' })) {
-        showCustomAlert(`User ${name} berhasil ditambahkan!`, 'success');
-        closeAddUserModal();
-        renderUserManagement();
     }
 }
 
