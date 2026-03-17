@@ -1,7 +1,7 @@
 // ============================================
 // TURBINE LOGSHEET PRO - VERSION CONTROL
 // ============================================
-const APP_VERSION = '2.0.1'; 
+const APP_VERSION = '2.0.1';
 
 // ============================================
 // CONFIGURATION & CONSTANTS
@@ -9,8 +9,8 @@ const APP_VERSION = '2.0.1';
 const AUTH_CONFIG = {
     SESSION_KEY: 'turbine_session_v2',
     USER_KEY: 'turbine_user_v2',
-    SESSION_DURATION: 8 * 60 * 60 * 1000, // 8 jam
-    REMEMBER_ME_DURATION: 30 * 24 * 60 * 60 * 1000 // 30 hari
+    SESSION_DURATION: 8 * 60 * 60 * 1000,
+    REMEMBER_ME_DURATION: 30 * 24 * 60 * 60 * 1000
 };
 
 const DRAFT_KEYS = {
@@ -24,15 +24,8 @@ const DRAFT_KEYS = {
     BALANCING_HISTORY: 'balancing_history_v2'
 };
 
-// ============================================
-// GAS BACKEND CONFIGURATION
-// ============================================
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzTahRMM2mmgwNgZuOxpbwVJAqFs7HRx3AjRrkShVX3VJ__NqQ0zbenBugI2KRdOSlDXw/exec";
 
-// ============================================
-// USER CREDENTIALS (Sync dengan GAS)
-// ============================================
-// Catatan: Ini juga harus sama dengan yang di GAS
 const USER_CREDENTIALS = {
     'admin': { 
         password: 'admin123', 
@@ -269,10 +262,6 @@ if ('serviceWorker' in navigator) {
 // ============================================
 // AUTHENTICATION FUNCTIONS
 // ============================================
-
-/**
- * Toggle Password Visibility
- */
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('operatorPassword');
     const eyeIcon = document.getElementById('eyeIcon');
@@ -289,9 +278,6 @@ function togglePasswordVisibility() {
     }
 }
 
-/**
- * Initialize Authentication
- */
 function initAuth() {
     const session = getSession();
     
@@ -320,15 +306,12 @@ function getSession() {
     }
 }
 
-/**
- * Save Session dengan password untuk GAS auth
- */
 function saveSession(user, password, rememberMe = false) {
     const duration = rememberMe ? AUTH_CONFIG.REMEMBER_ME_DURATION : AUTH_CONFIG.SESSION_DURATION;
     const session = {
         user: user,
         username: user.username,
-        password: password, // Simpan untuk auth ke GAS (internal app)
+        password: password,
         loginTime: Date.now(),
         expiresAt: Date.now() + duration,
         rememberMe: rememberMe
@@ -354,9 +337,6 @@ function clearSession() {
     isAuthenticated = false;
 }
 
-/**
- * Login Operator dengan Username & Password
- */
 function loginOperator() {
     const usernameInput = document.getElementById('operatorName');
     const passwordInput = document.getElementById('operatorPassword');
@@ -370,13 +350,11 @@ function loginOperator() {
     const username = usernameInput.value.trim().toLowerCase();
     const password = passwordInput.value.trim();
     
-    // Reset error states
     usernameInput.classList.remove('error');
     passwordInput.classList.remove('error');
     errorMsg.style.display = 'none';
     errorMsg.classList.remove('show');
     
-    // Validation
     if (!username) {
         showLoginError('Username wajib diisi!', usernameInput);
         return;
@@ -392,7 +370,6 @@ function loginOperator() {
         return;
     }
     
-    // Check credentials against local config (must match GAS)
     const user = USER_CREDENTIALS[username];
     
     if (!user || user.password !== password) {
@@ -402,7 +379,6 @@ function loginOperator() {
         return;
     }
     
-    // Success - Create user session object
     const userSession = {
         name: user.name,
         username: username,
@@ -412,7 +388,6 @@ function loginOperator() {
         loginTime: new Date().toISOString()
     };
     
-    // Save session dengan password
     saveSession(userSession, password, false);
     currentUser = userSession;
     isAuthenticated = true;
@@ -477,7 +452,6 @@ function showLoginScreen() {
         loginScreen.classList.add('active');
     }
     
-    // Auto-fill jika ada remember me
     const savedUser = localStorage.getItem(AUTH_CONFIG.USER_KEY);
     if (savedUser) {
         try {
@@ -698,21 +672,6 @@ function cancelUpload() {
 // ============================================
 // UI & NAVIGATION FUNCTIONS
 // ============================================
-window.addEventListener('DOMContentLoaded', () => {
-    totalParams = Object.values(AREAS).reduce((acc, arr) => acc + arr.length, 0);
-    
-    const versionDisplay = document.getElementById('versionDisplay');
-    if (versionDisplay) {
-        versionDisplay.textContent = 'v' + APP_VERSION;
-    }
-    
-    initAuth();
-    setupLoginListeners();
-    setupTPMListeners();
-    
-    simulateLoading();
-});
-
 function setupLoginListeners() {
     const nameInput = document.getElementById('operatorName');
     const passwordInput = document.getElementById('operatorPassword');
@@ -1421,10 +1380,6 @@ function goBack() {
 // ============================================
 // API COMMUNICATION HELPER
 // ============================================
-
-/**
- * Get credentials dari session untuk dikirim ke GAS
- */
 function getCredentialsForAPI() {
     const session = getSession();
     if (session && session.username && session.password) {
@@ -1436,9 +1391,6 @@ function getCredentialsForAPI() {
     return null;
 }
 
-/**
- * Send to Sheet dengan progress dan auth
- */
 async function sendToSheet() {
     if (!requireAuth()) return;
     
@@ -1452,7 +1404,6 @@ async function sendToSheet() {
         });
     });
     
-    // Ambil credentials
     const creds = getCredentialsForAPI();
     if (!creds) {
         progress.error();
@@ -1462,7 +1413,7 @@ async function sendToSheet() {
     
     const finalData = {
         type: 'LOGSHEET',
-        ...creds, // Kirim username dan password
+        ...creds,
         Operator: currentUser ? currentUser.name : 'Unknown',
         ...allParameters
     };
@@ -1641,7 +1592,6 @@ async function submitTPMData() {
         return;
     }
     
-    // Ambil credentials
     const creds = getCredentialsForAPI();
     if (!creds) {
         showCustomAlert('Sesi tidak valid, silakan login ulang', 'error');
@@ -1656,7 +1606,7 @@ async function submitTPMData() {
     
     const tpmData = {
         type: 'TPM',
-        ...creds, // Kirim auth
+        ...creds,
         area: activeTPMArea,
         status: currentTPMStatus,
         action: action,
@@ -2284,7 +2234,6 @@ async function submitBalancingData() {
         }
     }
     
-    // Ambil credentials
     const creds = getCredentialsForAPI();
     if (!creds) {
         showCustomAlert('Sesi tidak valid, silakan login ulang', 'error');
@@ -2299,7 +2248,7 @@ async function submitBalancingData() {
     
     const balancingData = {
         type: 'BALANCING',
-        ...creds, // Kirim username dan password untuk validasi
+        ...creds,
         Operator: currentUser ? currentUser.name : 'Unknown',
         Timestamp: new Date().toISOString(),
         
@@ -2405,7 +2354,6 @@ async function submitBalancingData() {
 // ============================================
 // PWA INSTALL HANDLER
 // ============================================
-
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -2564,6 +2512,52 @@ function showToast(msg, type) {
     console.log(`[${type}] ${msg}`);
 }
 
+// ============================================
+// VERSION AUTO-UPDATE SYSTEM
+// ============================================
+
+/**
+ * Update semua elemen yang menampilkan versi di seluruh halaman
+ * serta resource links untuk cache busting
+ */
+function updateVersionDisplays() {
+    // 1. Update elemen dengan class 'version-display'
+    document.querySelectorAll('.version-display').forEach(el => {
+        el.textContent = 'v' + APP_VERSION;
+    });
+    
+    // 2. Update meta tag app-version
+    const metaVersion = document.querySelector('meta[name="app-version"]');
+    if (metaVersion) {
+        metaVersion.content = APP_VERSION;
+    }
+    
+    console.log(`[Version System] UI Updated to v${APP_VERSION}`);
+}
+
+/**
+ * Check for version updates and notify user
+ */
+function checkVersionUpdate() {
+    const storedVersion = localStorage.getItem('app_stored_version');
+    if (storedVersion && storedVersion !== APP_VERSION) {
+        console.log(`[Version] Updated from ${storedVersion} to ${APP_VERSION}`);
+        // Optional: Show update notification
+        // showCustomAlert(`Aplikasi diperbarui ke v${APP_VERSION}`, 'info');
+    }
+    localStorage.setItem('app_stored_version', APP_VERSION);
+}
+
+/**
+ * Get current app version
+ */
+function getAppVersion() {
+    return APP_VERSION;
+}
+
+// ============================================
+// KEYBOARD SHORTCUTS
+// ============================================
 document.addEventListener('keydown', (e) => {
     const paramScreen = document.getElementById('paramScreen');
     if (!paramScreen || !paramScreen.classList.contains('active')) return;
@@ -2574,6 +2568,23 @@ document.addEventListener('keydown', (e) => {
     } else if (e.key === 'Escape') {
         goBack();
     }
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+window.addEventListener('DOMContentLoaded', () => {
+    // Update versi di seluruh UI terlebih dahulu
+    updateVersionDisplays();
+    checkVersionUpdate();
+    
+    totalParams = Object.values(AREAS).reduce((acc, arr) => acc + arr.length, 0);
+    
+    initAuth();
+    setupLoginListeners();
+    setupTPMListeners();
+    
+    simulateLoading();
 });
 
 function toggleSS2000Detail() {
