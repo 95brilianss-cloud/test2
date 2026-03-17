@@ -27,7 +27,7 @@ const DRAFT_KEYS = {
 // ============================================
 // GAS BACKEND CONFIGURATION
 // ============================================
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwZfKzCXuFVRxqYCnhY90Y8ejFFDSJxdHyp8DxN5shCgfI__0d25E0EIWbEi3pPgnsT/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzTahRMM2mmgwNgZuOxpbwVJAqFs7HRx3AjRrkShVX3VJ__NqQ0zbenBugI2KRdOSlDXw/exec";
 
 // ============================================
 // USER CREDENTIALS (Sync dengan GAS)
