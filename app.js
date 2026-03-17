@@ -1,16 +1,19 @@
 // ============================================
-// TURBINE LOGSHEET PRO - VERSION CONTROL
+// TURBINE LOGSHEET PRO - APP.JS FINAL
+// Version: 2.1.0
 // ============================================
-const APP_VERSION = '2.0.3';
 
 // ============================================
 // CONFIGURATION & CONSTANTS
 // ============================================
+const APP_VERSION = '2.0.4';
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz7U2Uu3JzASLs40vyqjmUziSdvwOCOiNu7e4qes1B0Ot3o1rIzVrPsdPCkcl3w00twFg/exec"; // GANTI DENGAN URL DEPLOYMENT ANDA
+
 const AUTH_CONFIG = {
     SESSION_KEY: 'turbine_session_v2',
     USER_KEY: 'turbine_user_v2',
-    SESSION_DURATION: 8 * 60 * 60 * 1000,
-    REMEMBER_ME_DURATION: 30 * 24 * 60 * 60 * 1000
+    SESSION_DURATION: 8 * 60 * 60 * 1000, // 8 jam
+    REMEMBER_ME_DURATION: 30 * 24 * 60 * 60 * 1000 // 30 hari
 };
 
 const DRAFT_KEYS = {
@@ -24,8 +27,12 @@ const DRAFT_KEYS = {
     BALANCING_HISTORY: 'balancing_history_v2'
 };
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzTahRMM2mmgwNgZuOxpbwVJAqFs7HRx3AjRrkShVX3VJ__NqQ0zbenBugI2KRdOSlDXw/exec";
+// User Management Storage Keys
+const USER_STORAGE_KEY = 'turbine_users_v2';
+const USER_SYNC_TIME = 'turbine_users_sync_time';
+const USER_ACTIVITY_LOG = 'turbine_activity_log';
 
+// Default Users (Fallback)
 const USER_CREDENTIALS = {
     'admin': { 
         password: 'admin123', 
@@ -233,7 +240,7 @@ const INPUT_TYPES = {
 };
 
 // ============================================
-// SERVICE WORKER
+// SERVICE WORKER REGISTRATION
 // ============================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -260,8 +267,263 @@ if ('serviceWorker' in navigator) {
 }
 
 // ============================================
+// USER MANAGEMENT SYSTEM
+// ============================================
+
+function initUserStorage() {
+    const stored = localStorage.getItem(USER_STORAGE_KEY);
+    if (!stored) {
+        // Convert hardcoded to storage format
+        const defaultUsers = {};
+        Object.entries(USER_CREDENTIALS).forEach(([username, data]) => {
+            defaultUsers[username] = {
+                ...data,
+                status: 'Active',
+                createdAt: new Date().toISOString(),
+                isDefault: true
+            };
+        });
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(defaultUsers));
+    }
+}
+
+function getAllUsers() {
+    initUserStorage();
+    const stored = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
+    return Object.entries(stored)
+        .map(([username, data]) => ({ username, ...data }))
+        .filter(u => u.status === 'Active');
+}
+
+async function syncUsersFromCloud(force = false) {
+    const lastSync = parseInt(localStorage.getItem(USER_SYNC_TIME) || '0');
+    const now = Date.now();
+    
+    if (!force && (now - lastSync) < (30 * 60 * 1000)) {
+        console.log('Using cached users');
+        return getAllUsers();
+    }
+    
+    try {
+        showCustomAlert('Sinkronisasi user...', 'info');
+        
+        const callbackName = 'userSyncCallback_' + Date.now();
+        
+        return new Promise((resolve) => {
+            window[callbackName] = (response) => {
+                delete window[callbackName];
+                
+                if (response.success && response.users) {
+                    // Merge dengan hardcoded (hardcoded priority untuk default)
+                    const merged = {};
+                    Object.entries(USER_CREDENTIALS).forEach(([username, data]) => {
+                        merged[username] = {
+                            ...data,
+                            status: 'Active',
+                            isDefault: true
+                        };
+                    });
+                    
+                    // Override dengan cloud users
+                    response.users.forEach(u => {
+                        if (!merged[u.username]) {
+                            merged[u.username] = {
+                                password: u.password, // Akan diisi jika pakai getUsersFull
+                                role: u.role,
+                                name: u.name,
+                                department: u.department,
+                                status: u.status,
+                                isDefault: false
+                            };
+                        }
+                    });
+                    
+                    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(merged));
+                    localStorage.setItem(USER_SYNC_TIME, now.toString());
+                    
+                    showCustomAlert(`✓ ${response.users.length} user tersinkronisasi`, 'success');
+                    resolve(Object.entries(merged).map(([username, data]) => ({ username, ...data })));
+                } else {
+                    resolve(getAllUsers());
+                }
+            };
+            
+            const script = document.createElement('script');
+            script.src = `${GAS_URL}?action=getUsers&callback=${callbackName}&t=${now}`;
+            script.onerror = () => {
+                delete window[callbackName];
+                resolve(getAllUsers());
+            };
+            
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    resolve(getAllUsers());
+                }
+            }, 5000);
+            
+            document.body.appendChild(script);
+        });
+    } catch (err) {
+        console.error('Sync error:', err);
+        return getAllUsers();
+    }
+}
+
+function validateUserLocal(username, password) {
+    if (!username || !password) return { valid: false, message: 'Data tidak lengkap' };
+    
+    const users = getAllUsers();
+    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.status === 'Active');
+    
+    if (!user) return { valid: false, message: 'Username atau password salah' };
+    if (user.password !== password) return { valid: false, message: 'Username atau password salah' };
+    
+    return {
+        valid: true,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        department: user.department,
+        isDefault: user.isDefault || false
+    };
+}
+
+async function addUser(userData) {
+    if (!currentUser || currentUser.role !== 'admin') {
+        showCustomAlert('Hanya admin yang dapat menambah user', 'error');
+        return false;
+    }
+    
+    const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
+    
+    if (users[userData.username.toLowerCase()]) {
+        showCustomAlert('Username sudah terdaftar', 'error');
+        return false;
+    }
+    
+    if (!userData.username || !userData.password || !userData.name) {
+        showCustomAlert('Semua field wajib diisi', 'error');
+        return false;
+    }
+    
+    if (userData.password.length < 6) {
+        showCustomAlert('Password minimal 6 karakter', 'error');
+        return false;
+    }
+    
+    users[userData.username.toLowerCase()] = {
+        password: userData.password,
+        role: userData.role || 'operator',
+        name: userData.name,
+        department: userData.department || 'Unit Utilitas 3B',
+        status: 'Active',
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser.name,
+        isDefault: false
+    };
+    
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+    logActivity('USER_ADDED', userData.username, `Added by ${currentUser.name}`);
+    
+    // Sync to GAS
+    if (navigator.onLine) {
+        try {
+            await fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'USER_ADD',
+                    adminUsername: currentUser.username,
+                    adminPassword: getCurrentUserPassword(),
+                    ...userData
+                })
+            });
+        } catch (e) { console.log('GAS sync failed'); }
+    }
+    
+    return true;
+}
+
+function deleteUser(username) {
+    if (!currentUser || currentUser.role !== 'admin') {
+        showCustomAlert('Unauthorized', 'error');
+        return false;
+    }
+    
+    const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
+    const userKey = username.toLowerCase();
+    
+    if (users[userKey]?.isDefault) {
+        showCustomAlert('User bawaan sistem tidak dapat dihapus', 'error');
+        return false;
+    }
+    
+    if (userKey === currentUser.username.toLowerCase()) {
+        showCustomAlert('Anda tidak dapat menghapus diri sendiri', 'error');
+        return false;
+    }
+    
+    users[userKey].status = 'Inactive';
+    users[userKey].updatedAt = new Date().toISOString();
+    users[userKey].updatedBy = currentUser.name;
+    
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+    logActivity('USER_DELETED', username, `Deleted by ${currentUser.name}`);
+    
+    // Sync to GAS
+    if (navigator.onLine) {
+        fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'USER_DELETE',
+                adminUsername: currentUser.username,
+                adminPassword: getCurrentUserPassword(),
+                username: username
+            })
+        }).catch(() => {});
+    }
+    
+    return true;
+}
+
+function logActivity(action, username, details) {
+    try {
+        const logs = JSON.parse(localStorage.getItem(USER_ACTIVITY_LOG) || '[]');
+        logs.push({
+            timestamp: new Date().toISOString(),
+            action,
+            username,
+            details,
+            device: navigator.userAgent
+        });
+        if (logs.length > 100) logs.shift();
+        localStorage.setItem(USER_ACTIVITY_LOG, JSON.stringify(logs));
+    } catch (e) {}
+}
+
+function getCurrentUserPassword() {
+    const session = getSession();
+    return session ? session.password : null;
+}
+
+function getUserStats() {
+    const users = getAllUsers();
+    return {
+        total: users.length,
+        admin: users.filter(u => u.role === 'admin').length,
+        operator: users.filter(u => u.role === 'operator').length,
+        custom: users.filter(u => !u.isDefault).length
+    };
+}
+
+// ============================================
 // AUTHENTICATION FUNCTIONS
 // ============================================
+
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('operatorPassword');
     const eyeIcon = document.getElementById('eyeIcon');
@@ -278,30 +540,11 @@ function togglePasswordVisibility() {
     }
 }
 
-function initAuth() {
-    const session = getSession();
-    
-    if (session && isSessionValid(session)) {
-        currentUser = session.user;
-        isAuthenticated = true;
-        updateUIForAuthenticatedUser();
-        
-        const loginScreen = document.getElementById('loginScreen');
-        if (loginScreen && loginScreen.classList.contains('active')) {
-            navigateTo('homeScreen');
-        }
-    } else {
-        clearSession();
-        showLoginScreen();
-    }
-}
-
 function getSession() {
     try {
         const sessionData = localStorage.getItem(AUTH_CONFIG.SESSION_KEY);
         return sessionData ? JSON.parse(sessionData) : null;
     } catch (e) {
-        console.error('Error reading session:', e);
         return null;
     }
 }
@@ -320,9 +563,7 @@ function saveSession(user, password, rememberMe = false) {
     try {
         localStorage.setItem(AUTH_CONFIG.SESSION_KEY, JSON.stringify(session));
         localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(user));
-    } catch (e) {
-        console.error('Error saving session:', e);
-    }
+    } catch (e) {}
 }
 
 function isSessionValid(session) {
@@ -337,15 +578,35 @@ function clearSession() {
     isAuthenticated = false;
 }
 
-function loginOperator() {
+function initAuth() {
+    const session = getSession();
+    
+    if (session && isSessionValid(session)) {
+        currentUser = session.user;
+        isAuthenticated = true;
+        updateUIForAuthenticatedUser();
+        
+        const loginScreen = document.getElementById('loginScreen');
+        if (loginScreen && loginScreen.classList.contains('active')) {
+            navigateTo('homeScreen');
+        }
+        
+        // Setup admin menu jika admin
+        if (currentUser.role === 'admin') {
+            setTimeout(setupAdminMenu, 500);
+        }
+    } else {
+        clearSession();
+        showLoginScreen();
+    }
+}
+
+async function loginOperator() {
     const usernameInput = document.getElementById('operatorName');
     const passwordInput = document.getElementById('operatorPassword');
     const errorMsg = document.getElementById('loginError');
     
-    if (!usernameInput || !passwordInput) {
-        console.error('Login inputs not found');
-        return;
-    }
+    if (!usernameInput || !passwordInput) return;
     
     const username = usernameInput.value.trim().toLowerCase();
     const password = passwordInput.value.trim();
@@ -355,49 +616,44 @@ function loginOperator() {
     errorMsg.style.display = 'none';
     errorMsg.classList.remove('show');
     
-    if (!username) {
-        showLoginError('Username wajib diisi!', usernameInput);
+    if (!username || !password) {
+        showLoginError('Username dan password wajib diisi!', username ? passwordInput : usernameInput);
         return;
     }
     
-    if (username.length < 3) {
-        showLoginError('Username minimal 3 karakter!', usernameInput);
-        return;
-    }
+    const validation = validateUserLocal(username, password);
     
-    if (!password) {
-        showLoginError('Password wajib diisi!', passwordInput);
-        return;
-    }
-    
-    const user = USER_CREDENTIALS[username];
-    
-    if (!user || user.password !== password) {
-        showLoginError('Username atau password salah!', usernameInput);
+    if (!validation.valid) {
+        showLoginError(validation.message, usernameInput);
         passwordInput.value = '';
         passwordInput.focus();
         return;
     }
     
+    // Background sync users
+    syncUsersFromCloud(false).catch(console.error);
+    
     const userSession = {
-        name: user.name,
+        name: validation.name,
         username: username,
-        id: user.role.toUpperCase() + '-' + Date.now().toString(36).toUpperCase().slice(-6),
-        role: user.role,
-        department: user.department,
-        loginTime: new Date().toISOString()
+        id: validation.role.toUpperCase() + '-' + Date.now().toString(36).toUpperCase().slice(-6),
+        role: validation.role,
+        department: validation.department,
+        loginTime: new Date().toISOString(),
+        password: password
     };
     
     saveSession(userSession, password, false);
     currentUser = userSession;
     isAuthenticated = true;
     
-    showCustomAlert(`Selamat datang, ${user.name}!`, 'success');
+    showCustomAlert(`Selamat datang, ${validation.name}!`, 'success');
     
     setTimeout(() => {
         updateUIForAuthenticatedUser();
         navigateTo('homeScreen');
         loadUserStats();
+        if (validation.role === 'admin') setupAdminMenu();
     }, 800);
 }
 
@@ -413,9 +669,7 @@ function showLoginError(message, focusElement) {
     if (usernameInput) usernameInput.classList.add('error');
     if (passwordInput) passwordInput.classList.add('error');
     
-    if (focusElement) {
-        focusElement.focus();
-    }
+    if (focusElement) focusElement.focus();
     
     setTimeout(() => {
         errorMsg.classList.remove('show');
@@ -443,14 +697,9 @@ function logoutOperator() {
 }
 
 function showLoginScreen() {
-    document.querySelectorAll('.screen').forEach(s => {
-        s.classList.remove('active');
-    });
-    
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) {
-        loginScreen.classList.add('active');
-    }
+    if (loginScreen) loginScreen.classList.add('active');
     
     const savedUser = localStorage.getItem(AUTH_CONFIG.USER_KEY);
     if (savedUser) {
@@ -461,9 +710,7 @@ function showLoginScreen() {
                 nameInput.value = user.username;
                 document.getElementById('operatorPassword')?.focus();
             }
-        } catch (e) {
-            console.error('Error parsing saved user:', e);
-        }
+        } catch (e) {}
     }
 }
 
@@ -471,12 +718,8 @@ function updateUIForAuthenticatedUser() {
     if (!currentUser) return;
     
     const userElements = [
-        'displayUserName',
-        'tpmHeaderUser',
-        'tpmInputUser',
-        'areaListUser',
-        'paramUser',
-        'balancingUser'
+        'displayUserName', 'tpmHeaderUser', 'tpmInputUser', 
+        'areaListUser', 'paramUser', 'balancingUser'
     ];
     
     userElements.forEach(id => {
@@ -518,14 +761,209 @@ function loadUserStats() {
         statProgress.textContent = `${percent}%`;
     }
     
-    if (statAreas) {
-        statAreas.textContent = `${completedAreas}/${totalAreas}`;
+    if (statAreas) statAreas.textContent = `${completedAreas}/${totalAreas}`;
+}
+
+// ============================================
+// USER MANAGEMENT UI
+// ============================================
+
+function setupAdminMenu() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    if (document.getElementById('menuUserManagement')) return;
+    
+    const menuGrid = document.getElementById('menuGrid');
+    if (!menuGrid) return;
+    
+    const btn = document.createElement('button');
+    btn.id = 'menuUserManagement';
+    btn.className = 'menu-btn';
+    btn.onclick = () => {
+        renderUserManagement();
+        navigateTo('userManagementScreen');
+    };
+    btn.innerHTML = `
+        <div class="menu-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+        </div>
+        <div class="menu-text">
+            <span class="menu-title">Kelola User</span>
+            <span class="menu-desc">Admin: ${getUserStats().total} User</span>
+        </div>
+    `;
+    
+    menuGrid.insertBefore(btn, menuGrid.lastElementChild);
+}
+
+function renderUserManagement() {
+    if (!requireAuth() || currentUser.role !== 'admin') {
+        showCustomAlert('Akses ditolak', 'error');
+        return;
+    }
+    
+    const stats = getUserStats();
+    const users = getAllUsers();
+    const container = document.getElementById('userManagementList');
+    const countEl = document.getElementById('userCount');
+    
+    if (countEl) countEl.textContent = `${stats.total} User (${stats.custom} Custom)`;
+    if (!container) return;
+    
+    let html = `
+        <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
+                <div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #f8fafc;">${stats.total}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Total User</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;">${stats.admin}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Admin</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">${stats.operator}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Operator</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (users.length === 0) {
+        html += `<div style="text-align: center; padding: 40px; color: #64748b;">Tidak ada user aktif</div>`;
+    } else {
+        users.forEach(user => {
+            const isDefault = user.isDefault;
+            const isSelf = user.username === currentUser.username;
+            const roleColor = user.role === 'admin' ? '#ef4444' : '#3b82f6';
+            const roleBg = user.role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)';
+            
+            html += `
+                <div style="
+                    display: flex; 
+                    align-items: center; 
+                    padding: 16px; 
+                    margin-bottom: 12px; 
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid ${isSelf ? 'rgba(245, 158, 11, 0.3)' : 'rgba(148, 163, 184, 0.1)'};
+                    border-radius: 12px;
+                ">
+                    <div style="
+                        width: 48px; 
+                        height: 48px; 
+                        border-radius: 50%; 
+                        background: ${roleBg};
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center;
+                        font-size: 1.25rem;
+                        margin-right: 16px;
+                        border: 2px solid ${roleColor};
+                    ">
+                        ${user.role === 'admin' ? '👑' : '👤'}
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+                            <span style="font-weight: 600; color: #f8fafc; font-size: 0.9375rem;">${user.name}</span>
+                            ${isSelf ? '<span style="font-size: 0.625rem; color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 2px 6px; border-radius: 4px;">Anda</span>' : ''}
+                            <span style="
+                                padding: 2px 8px; 
+                                border-radius: 4px; 
+                                font-size: 0.625rem; 
+                                font-weight: 700; 
+                                text-transform: uppercase;
+                                color: ${roleColor};
+                                background: ${roleBg};
+                            ">${user.role}</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: #64748b; line-height: 1.4;">
+                            <div>@${user.username} • ${user.department}</div>
+                            ${isDefault ? '<div style="color: #475569; font-style: italic; margin-top: 2px;">User Bawaan Sistem</div>' : ''}
+                        </div>
+                    </div>
+                    
+                    ${!isDefault ? `
+                        <button onclick="confirmDeleteUser('${user.username}', '${user.name}')" style="
+                            padding: 8px 12px;
+                            background: rgba(239, 68, 68, 0.1);
+                            color: #ef4444;
+                            border: 1px solid rgba(239, 68, 68, 0.2);
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 0.75rem;
+                            font-weight: 500;
+                        " onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">
+                            Hapus
+                        </button>
+                    ` : '<span style="font-size: 0.75rem; color: #475569; padding: 8px;">Locked</span>'}
+                </div>
+            `;
+        });
+    }
+    
+    container.innerHTML = html;
+}
+
+function confirmDeleteUser(username, name) {
+    if (confirm(`Hapus user "${name}" (${username})?\n\nUser tidak dapat mengakses aplikasi setelah dihapus.`)) {
+        if (deleteUser(username)) {
+            showCustomAlert('User berhasil dihapus', 'success');
+            renderUserManagement();
+        }
+    }
+}
+
+function openAddUserModal() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    document.getElementById('addUserModal').classList.remove('hidden');
+    document.getElementById('newUsername').focus();
+}
+
+function closeAddUserModal() {
+    document.getElementById('addUserModal').classList.add('hidden');
+    ['newUsername', 'newPassword', 'newName'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('newRole').value = 'operator';
+}
+
+async function submitNewUser() {
+    const username = document.getElementById('newUsername').value.trim().toLowerCase();
+    const password = document.getElementById('newPassword').value;
+    const name = document.getElementById('newName').value.trim();
+    const role = document.getElementById('newRole').value;
+    
+    if (!username || !password || !name) {
+        showCustomAlert('Semua field wajib diisi', 'error');
+        return;
+    }
+    
+    if (username.length < 3) {
+        showCustomAlert('Username minimal 3 karakter', 'error');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showCustomAlert('Password minimal 6 karakter', 'error');
+        return;
+    }
+    
+    if (await addUser({ username, password, name, role, department: 'Unit Utilitas 3B' })) {
+        showCustomAlert(`User ${name} berhasil ditambahkan!`, 'success');
+        closeAddUserModal();
+        renderUserManagement();
     }
 }
 
 // ============================================
 // UPLOAD PROGRESS MANAGER
 // ============================================
+
 function showUploadProgress(title = 'Mengupload Data...') {
     const overlay = document.getElementById('uploadProgressOverlay');
     const percentage = document.getElementById('progressPercentage');
@@ -573,7 +1011,6 @@ function showUploadProgress(title = 'Mengupload Data...') {
         }
         
         updateProgressRing(progress);
-        
     }, 100);
     
     return {
@@ -610,9 +1047,7 @@ function setUploadStep(stepNum) {
             }
         }
         
-        if (line && i < stepNum) {
-            line.classList.add('active');
-        }
+        if (line && i < stepNum) line.classList.add('active');
     }
 }
 
@@ -629,9 +1064,7 @@ function completeUploadProgress() {
     if (turbine) turbine.classList.remove('spinning');
     if (statusText) statusText.textContent = '✓ Berhasil!';
     
-    setTimeout(() => {
-        hideUploadProgress();
-    }, 800);
+    setTimeout(() => hideUploadProgress(), 800);
 }
 
 function errorUploadProgress() {
@@ -647,9 +1080,7 @@ function errorUploadProgress() {
     if (statusText) statusText.textContent = '✗ Gagal Mengirim';
     if (percentage) percentage.textContent = 'Error';
     
-    setTimeout(() => {
-        hideUploadProgress();
-    }, 1500);
+    setTimeout(() => hideUploadProgress(), 1500);
 }
 
 function hideUploadProgress() {
@@ -662,9 +1093,7 @@ function hideUploadProgress() {
 }
 
 function cancelUpload() {
-    if (currentUploadController) {
-        currentUploadController.abort();
-    }
+    if (currentUploadController) currentUploadController.abort();
     hideUploadProgress();
     showCustomAlert('Upload dibatalkan', 'warning');
 }
@@ -672,40 +1101,29 @@ function cancelUpload() {
 // ============================================
 // UI & NAVIGATION FUNCTIONS
 // ============================================
+
 function setupLoginListeners() {
     const nameInput = document.getElementById('operatorName');
     const passwordInput = document.getElementById('operatorPassword');
     
     if (nameInput) {
-        nameInput.addEventListener('input', () => {
-            nameInput.classList.remove('error');
-        });
-        
+        nameInput.addEventListener('input', () => nameInput.classList.remove('error'));
         nameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                if (passwordInput) passwordInput.focus();
-            }
+            if (e.key === 'Enter') passwordInput?.focus();
         });
     }
     
     if (passwordInput) {
-        passwordInput.addEventListener('input', () => {
-            passwordInput.classList.remove('error');
-        });
-        
+        passwordInput.addEventListener('input', () => passwordInput.classList.remove('error'));
         passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                loginOperator();
-            }
+            if (e.key === 'Enter') loginOperator();
         });
     }
 }
 
 function setupTPMListeners() {
     const tpmCamera = document.getElementById('tpmCamera');
-    if (tpmCamera) {
-        tpmCamera.addEventListener('change', handleTPMPhoto);
-    }
+    if (tpmCamera) tpmCamera.addEventListener('change', handleTPMPhoto);
 }
 
 function simulateLoading() {
@@ -719,10 +1137,7 @@ function simulateLoading() {
             setTimeout(() => {
                 const loader = document.getElementById('loader');
                 if (loader) loader.style.display = 'none';
-                
-                if (isAuthenticated) {
-                    renderMenu();
-                }
+                if (isAuthenticated) renderMenu();
             }, 500);
         }
         if (loaderProgress) loaderProgress.style.width = progress + '%';
@@ -748,7 +1163,6 @@ function showCustomAlert(msg, type = 'success') {
     const customAlert = document.getElementById('customAlert');
     
     if (!customAlert || !alertContent || !alertTitle || !alertIconWrapper) {
-        console.error('Alert elements not found');
         alert(msg);
         return;
     }
@@ -758,12 +1172,7 @@ function showCustomAlert(msg, type = 'success') {
         autoCloseTimer = null;
     }
     
-    const titleMap = {
-        'success': 'Berhasil',
-        'error': 'Error',
-        'warning': 'Peringatan',
-        'info': 'Informasi'
-    };
+    const titleMap = { 'success': 'Berhasil', 'error': 'Error', 'warning': 'Peringatan', 'info': 'Informasi' };
     alertTitle.textContent = titleMap[type] || 'Informasi';
     
     const alertMessage = document.getElementById('alertMessage');
@@ -771,42 +1180,14 @@ function showCustomAlert(msg, type = 'success') {
     
     alertContent.className = 'alert-content ' + type;
     
-    if (type === 'success') {
-        alertIconWrapper.innerHTML = `
-            <div class="alert-icon-bg"></div>
-            <svg class="alert-icon-svg" viewBox="0 0 52 52">
-                <circle cx="26" cy="26" r="25"></circle>
-                <path d="M14.1 27.2l7.1 7.2 16.7-16.8"></path>
-            </svg>
-        `;
-    } else if (type === 'warning') {
-        alertIconWrapper.innerHTML = `
-            <div class="alert-icon-bg" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);"></div>
-            <svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #f59e0b;">
-                <circle cx="26" cy="26" r="25"></circle>
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-        `;
-    } else if (type === 'info') {
-        alertIconWrapper.innerHTML = `
-            <div class="alert-icon-bg" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);"></div>
-            <svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #3b82f6;">
-                <circle cx="26" cy="26" r="25"></circle>
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-        `;
-    } else {
-        alertIconWrapper.innerHTML = `
-            <div class="alert-icon-bg" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);"></div>
-            <svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #ef4444;">
-                <circle cx="26" cy="26" r="25"></circle>
-                <path d="M16 16 L36 36 M36 16 L16 36"></path>
-            </svg>
-        `;
-    }
+    const icons = {
+        success: `<div class="alert-icon-bg"></div><svg class="alert-icon-svg" viewBox="0 0 52 52"><circle cx="26" cy="26" r="25"></circle><path d="M14.1 27.2l7.1 7.2 16.7-16.8"></path></svg>`,
+        error: `<div class="alert-icon-bg" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);"></div><svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #ef4444;"><circle cx="26" cy="26" r="25"></circle><path d="M16 16 L36 36 M36 16 L16 36"></path></svg>`,
+        warning: `<div class="alert-icon-bg" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);"></div><svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #f59e0b;"><circle cx="26" cy="26" r="25"></circle><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+        info: `<div class="alert-icon-bg" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);"></div><svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #3b82f6;"><circle cx="26" cy="26" r="25"></circle><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`
+    };
     
+    alertIconWrapper.innerHTML = icons[type] || icons.success;
     customAlert.classList.remove('hidden');
     
     if (type === 'success' || type === 'info') {
@@ -826,10 +1207,8 @@ function closeAlert() {
 }
 
 function navigateTo(screenId) {
-    const protectedScreens = ['homeScreen', 'areaListScreen', 'paramScreen', 'tpmScreen', 'tpmInputScreen', 'balancingScreen'];
-    if (protectedScreens.includes(screenId) && !requireAuth()) {
-        return;
-    }
+    const protectedScreens = ['homeScreen', 'areaListScreen', 'paramScreen', 'tpmScreen', 'tpmInputScreen', 'balancingScreen', 'userManagementScreen'];
+    if (protectedScreens.includes(screenId) && !requireAuth()) return;
     
     document.querySelectorAll('.screen').forEach(s => {
         s.classList.remove('active');
@@ -841,10 +1220,7 @@ function navigateTo(screenId) {
     if (targetScreen) {
         targetScreen.classList.add('active');
         
-        if (screenId === 'tpmScreen' || screenId === 'tpmInputScreen') {
-            updateTPMUserInfo();
-        }
-        
+        if (screenId === 'tpmScreen' || screenId === 'tpmInputScreen') updateTPMUserInfo();
         if (screenId === 'areaListScreen') {
             fetchLastData();
             updateOverallProgress();
@@ -852,6 +1228,8 @@ function navigateTo(screenId) {
             loadUserStats();
         } else if (screenId === 'balancingScreen') {
             initBalancingScreen();
+        } else if (screenId === 'userManagementScreen') {
+            renderUserManagement();
         }
     }
 }
@@ -859,6 +1237,7 @@ function navigateTo(screenId) {
 // ============================================
 // LOGSHEET FUNCTIONS
 // ============================================
+
 function fetchLastData() {
     updateStatusIndicator(false);
     const timeout = setTimeout(() => renderMenu(), 8000);
@@ -969,7 +1348,6 @@ function updateOverallProgressUI(completedAreas, totalAreas) {
 
 function openArea(areaName) {
     if (!requireAuth()) return;
-    
     activeArea = areaName;
     activeIdx = 0;
     navigateTo('paramScreen');
@@ -1011,17 +1389,12 @@ function jumpToStep(index) {
     
     if (input && input.value.trim()) {
         if (!currentInput[activeArea]) currentInput[activeArea] = {};
-        
         const checkedStatus = document.querySelector('input[name="paramStatus"]:checked');
         const note = document.getElementById('statusNote')?.value || '';
         let valueToSave = input.value.trim();
         
         if (checkedStatus) {
-            if (note) {
-                valueToSave = `${checkedStatus.value}\n${note}`;
-            } else {
-                valueToSave = checkedStatus.value;
-            }
+            valueToSave = note ? `${checkedStatus.value}\n${note}` : checkedStatus.value;
         }
         
         currentInput[activeArea][fullLabel] = valueToSave;
@@ -1073,19 +1446,13 @@ function handleStatusChange(checkbox) {
     if (checkbox.checked) {
         chip.classList.add('active');
         if (noteContainer) noteContainer.style.display = 'block';
+        setTimeout(() => document.getElementById('statusNote')?.focus(), 100);
         
-        setTimeout(() => {
-            const noteInput = document.getElementById('statusNote');
-            if (noteInput) noteInput.focus();
-        }, 100);
-        
-        if (checkbox.value === 'NOT_INSTALLED') {
-            if (valInput) {
-                valInput.value = '-';
-                valInput.disabled = true;
-                valInput.style.opacity = '0.5';
-                valInput.style.background = 'rgba(100, 116, 139, 0.2)';
-            }
+        if (checkbox.value === 'NOT_INSTALLED' && valInput) {
+            valInput.value = '-';
+            valInput.disabled = true;
+            valInput.style.opacity = '0.5';
+            valInput.style.background = 'rgba(100, 116, 139, 0.2)';
         }
     } else {
         chip.classList.remove('active');
@@ -1114,20 +1481,14 @@ function saveCurrentStatusToDraft() {
     if (!currentInput[activeArea]) currentInput[activeArea] = {};
     
     let valueToSave = '';
-    if (input && input.value.trim()) {
-        valueToSave = input.value.trim();
-    }
+    if (input && input.value.trim()) valueToSave = input.value.trim();
     
     if (checkedStatus) {
         if (checkedStatus.value === 'NOT_INSTALLED') {
             valueToSave = 'NOT_INSTALLED';
             if (note) valueToSave += '\n' + note;
         } else {
-            if (note) {
-                valueToSave = `${checkedStatus.value}\n${note}`;
-            } else {
-                valueToSave = checkedStatus.value;
-            }
+            valueToSave = note ? `${checkedStatus.value}\n${note}` : checkedStatus.value;
         }
     }
     
@@ -1176,15 +1537,11 @@ function loadAbnormalStatus(fullLabel) {
                 if (noteContainer) noteContainer.style.display = 'block';
                 if (noteInput) noteInput.value = secondLine;
                 
-                if (firstLine === 'NOT_INSTALLED') {
-                    if (valInput) {
-                        valInput.value = '-';
-                        valInput.disabled = true;
-                        valInput.style.opacity = '0.5';
-                        valInput.style.background = 'rgba(100, 116, 139, 0.2)';
-                    }
-                } else {
-                    if (valInput) valInput.value = '';
+                if (firstLine === 'NOT_INSTALLED' && valInput) {
+                    valInput.value = '-';
+                    valInput.disabled = true;
+                    valInput.style.opacity = '0.5';
+                    valInput.style.background = 'rgba(100, 116, 139, 0.2)';
                 }
             }
         } else {
@@ -1228,17 +1585,13 @@ function showStep() {
         if (currentValue) {
             const lines = currentValue.split('\n');
             const firstLine = lines[0];
-            if (!['ERROR', 'UPPER', 'NOT_INSTALLED'].includes(firstLine)) {
-                currentValue = firstLine;
-            } else {
-                currentValue = '';
-            }
+            if (!['ERROR', 'UPPER', 'NOT_INSTALLED'].includes(firstLine)) currentValue = firstLine;
+            else currentValue = '';
         }
         
         let optionsHtml = `<option value="" disabled ${!currentValue ? 'selected' : ''}>Pilih Status...</option>`;
         inputType.options.forEach(opt => {
-            const selected = currentValue === opt ? 'selected' : '';
-            optionsHtml += `<option value="${opt}" ${selected}>${opt}</option>`;
+            optionsHtml += `<option value="${opt}" ${currentValue === opt ? 'selected' : ''}>${opt}</option>`;
         });
         
         if (inputFieldContainer) {
@@ -1257,15 +1610,10 @@ function showStep() {
         if (mainInputWrapper) mainInputWrapper.classList.add('has-select');
     } else {
         let currentValue = (currentInput[activeArea] && currentInput[activeArea][fullLabel]) || '';
-        
         if (currentValue) {
             const lines = currentValue.split('\n');
-            const firstLine = lines[0];
-            if (!['ERROR', 'UPPER', 'NOT_INSTALLED'].includes(firstLine)) {
-                currentValue = firstLine;
-            } else {
-                currentValue = '';
-            }
+            if (!['ERROR', 'UPPER', 'NOT_INSTALLED'].includes(lines[0])) currentValue = lines[0];
+            else currentValue = '';
         }
         
         if (inputFieldContainer) {
@@ -1280,7 +1628,6 @@ function showStep() {
     
     loadAbnormalStatus(fullLabel);
     renderProgressDots();
-    
     setTimeout(() => {
         const input = document.getElementById('valInput');
         if (input && inputType.type === 'text' && !input.disabled) {
@@ -1297,9 +1644,7 @@ function saveStep() {
     if (!currentInput[activeArea]) currentInput[activeArea] = {};
     
     let valueToSave = '';
-    if (input && input.value.trim()) {
-        valueToSave = input.value.trim();
-    }
+    if (input && input.value.trim()) valueToSave = input.value.trim();
     
     const checkedStatus = document.querySelector('input[name="paramStatus"]:checked');
     const note = document.getElementById('statusNote')?.value || '';
@@ -1309,11 +1654,7 @@ function saveStep() {
             valueToSave = 'NOT_INSTALLED';
             if (note) valueToSave += '\n' + note;
         } else {
-            if (note) {
-                valueToSave = `${checkedStatus.value}\n${note}`;
-            } else {
-                valueToSave = checkedStatus.value;
-            }
+            valueToSave = note ? `${checkedStatus.value}\n${note}` : checkedStatus.value;
         }
     }
     
@@ -1341,9 +1682,7 @@ function goBack() {
     if (!currentInput[activeArea]) currentInput[activeArea] = {};
     
     let valueToSave = '';
-    if (input && input.value.trim()) {
-        valueToSave = input.value.trim();
-    }
+    if (input && input.value.trim()) valueToSave = input.value.trim();
     
     const checkedStatus = document.querySelector('input[name="paramStatus"]:checked');
     const note = document.getElementById('statusNote')?.value || '';
@@ -1353,11 +1692,7 @@ function goBack() {
             valueToSave = 'NOT_INSTALLED';
             if (note) valueToSave += '\n' + note;
         } else {
-            if (note) {
-                valueToSave = `${checkedStatus.value}\n${note}`;
-            } else {
-                valueToSave = checkedStatus.value;
-            }
+            valueToSave = note ? `${checkedStatus.value}\n${note}` : checkedStatus.value;
         }
     }
     
@@ -1377,20 +1712,6 @@ function goBack() {
     }
 }
 
-// ============================================
-// API COMMUNICATION HELPER
-// ============================================
-function getCredentialsForAPI() {
-    const session = getSession();
-    if (session && session.username && session.password) {
-        return {
-            username: session.username,
-            password: session.password
-        };
-    }
-    return null;
-}
-
 async function sendToSheet() {
     if (!requireAuth()) return;
     
@@ -1404,21 +1725,20 @@ async function sendToSheet() {
         });
     });
     
-    const creds = getCredentialsForAPI();
-    if (!creds) {
+    const session = getSession();
+    if (!session) {
         progress.error();
-        showCustomAlert('Sesi tidak valid, silakan login ulang', 'error');
+        showCustomAlert('Sesi tidak valid', 'error');
         return;
     }
     
     const finalData = {
         type: 'LOGSHEET',
-        ...creds,
+        username: session.username,
+        password: session.password,
         Operator: currentUser ? currentUser.name : 'Unknown',
         ...allParameters
     };
-    
-    console.log('Sending Logsheet Data:', finalData);
     
     try {
         await fetch(GAS_URL, {
@@ -1430,54 +1750,46 @@ async function sendToSheet() {
         });
         
         progress.complete();
-        showCustomAlert('✓ Data berhasil dikirim ke sistem!', 'success');
+        showCustomAlert('✓ Data berhasil dikirim!', 'success');
         
         currentInput = {};
         localStorage.removeItem(DRAFT_KEYS.LOGSHEET);
         
-        setTimeout(() => {
-            navigateTo('homeScreen');
-        }, 1500);
-        
+        setTimeout(() => navigateTo('homeScreen'), 1500);
     } catch (error) {
-        console.error('Error sending data:', error);
+        console.error('Error:', error);
         progress.error();
         
         let offlineData = JSON.parse(localStorage.getItem(DRAFT_KEYS.LOGSHEET_OFFLINE) || '[]');
         offlineData.push(finalData);
         localStorage.setItem(DRAFT_KEYS.LOGSHEET_OFFLINE, JSON.stringify(offlineData));
         
-        setTimeout(() => {
-            showCustomAlert('Gagal mengirim. Data disimpan lokal.', 'error');
-        }, 500);
+        setTimeout(() => showCustomAlert('Gagal mengirim. Data disimpan lokal.', 'error'), 500);
     }
 }
 
 // ============================================
 // TPM FUNCTIONS
 // ============================================
+
 function updateTPMUserInfo() {
     if (!currentUser) return;
-    
-    const tpmHeaderUser = document.getElementById('tpmHeaderUser');
-    const tpmInputUser = document.getElementById('tpmInputUser');
-    
-    if (tpmHeaderUser) tpmHeaderUser.textContent = currentUser.name;
-    if (tpmInputUser) tpmInputUser.textContent = currentUser.name;
+    const elements = ['tpmHeaderUser', 'tpmInputUser'];
+    elements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = currentUser.name;
+    });
 }
 
 function openTPMArea(areaName) {
     if (!requireAuth()) return;
-    
     activeTPMArea = areaName;
     currentTPMPhoto = null;
     currentTPMStatus = '';
-    
     resetTPMForm();
     
     const title = document.getElementById('tpmInputTitle');
     if (title) title.textContent = areaName;
-    
     updateTPMUserInfo();
     navigateTo('tpmInputScreen');
 }
@@ -1501,9 +1813,8 @@ function resetTPMForm() {
     if (photoSection) photoSection.classList.remove('has-photo');
     
     const notes = document.getElementById('tpmNotes');
-    if (notes) notes.value = '';
-    
     const action = document.getElementById('tpmAction');
+    if (notes) notes.value = '';
     if (action) action.value = '';
     
     resetTPMStatusButtons();
@@ -1565,9 +1876,7 @@ function selectTPMStatus(status) {
     }
     
     if ((status === 'abnormal' || status === 'off') && !currentTPMPhoto) {
-        setTimeout(() => {
-            showCustomAlert('⚠️ Kondisi abnormal/off wajib didokumentasikan dengan foto!', 'warning');
-        }, 100);
+        setTimeout(() => showCustomAlert('⚠️ Kondisi abnormal/off wajib didokumentasikan dengan foto!', 'warning'), 100);
     }
 }
 
@@ -1592,9 +1901,9 @@ async function submitTPMData() {
         return;
     }
     
-    const creds = getCredentialsForAPI();
-    if (!creds) {
-        showCustomAlert('Sesi tidak valid, silakan login ulang', 'error');
+    const session = getSession();
+    if (!session) {
+        showCustomAlert('Sesi tidak valid', 'error');
         return;
     }
     
@@ -1606,7 +1915,8 @@ async function submitTPMData() {
     
     const tpmData = {
         type: 'TPM',
-        ...creds,
+        username: session.username,
+        password: session.password,
         area: activeTPMArea,
         status: currentTPMStatus,
         action: action,
@@ -1635,7 +1945,6 @@ async function submitTPMData() {
         currentTPMStatus = '';
         
         setTimeout(() => navigateTo('tpmScreen'), 1500);
-        
     } catch (error) {
         progress.error();
         
@@ -1643,48 +1952,35 @@ async function submitTPMData() {
         offlineTPM.push(tpmData);
         localStorage.setItem(DRAFT_KEYS.TPM_OFFLINE, JSON.stringify(offlineTPM));
         
-        setTimeout(() => {
-            showCustomAlert('Gagal mengupload. Data disimpan lokal.', 'error');
-        }, 500);
+        setTimeout(() => showCustomAlert('Gagal mengupload. Data disimpan lokal.', 'error'), 500);
     }
 }
 
 // ============================================
 // BALANCING FUNCTIONS
 // ============================================
+
 function saveBalancingDraft() {
     try {
         const draftData = {};
-        
         BALANCING_FIELDS.forEach(fieldId => {
             const element = document.getElementById(fieldId);
-            if (element) {
-                draftData[fieldId] = element.value;
-            }
+            if (element) draftData[fieldId] = element.value;
         });
         
         draftData._shift = currentShift;
         draftData._savedAt = new Date().toISOString();
         draftData._user = currentUser ? currentUser.name : 'Unknown';
-        draftData._userId = currentUser ? currentUser.id : 'unknown';
         
         localStorage.setItem(DRAFT_KEYS.BALANCING, JSON.stringify(draftData));
-        console.log('Balancing draft saved');
         updateDraftStatusIndicator();
-        
-    } catch (e) {
-        console.error('Error saving balancing draft:', e);
-    }
+    } catch (e) {}
 }
 
 function loadBalancingDraft() {
     try {
         const draftData = JSON.parse(localStorage.getItem(DRAFT_KEYS.BALANCING));
-        
-        if (!draftData) {
-            console.log('No balancing draft found');
-            return false;
-        }
+        if (!draftData) return false;
         
         let loadedCount = 0;
         BALANCING_FIELDS.forEach(fieldId => {
@@ -1696,38 +1992,23 @@ function loadBalancingDraft() {
         });
         
         const eksporEl = document.getElementById('eksporMW');
-        if (eksporEl && eksporEl.value) {
-            handleEksporInput(eksporEl);
-        }
-        
+        if (eksporEl && eksporEl.value) handleEksporInput(eksporEl);
         calculateLPBalance();
         
-        if (loadedCount > 0) {
-            showCustomAlert(`Draft tersimpan ditemukan! ${loadedCount} field telah diisi.`, 'success');
-        }
-        
+        if (loadedCount > 0) showCustomAlert(`Draft ditemukan! ${loadedCount} field diisi.`, 'success');
         return loadedCount > 0;
-        
     } catch (e) {
-        console.error('Error loading balancing draft:', e);
         return false;
     }
 }
 
 function clearBalancingDraft() {
-    try {
-        localStorage.removeItem(DRAFT_KEYS.BALANCING);
-        console.log('Balancing draft cleared');
-        updateDraftStatusIndicator();
-    } catch (e) {
-        console.error('Error clearing balancing draft:', e);
-    }
+    localStorage.removeItem(DRAFT_KEYS.BALANCING);
+    updateDraftStatusIndicator();
 }
 
 function setupBalancingAutoSave() {
-    if (balancingAutoSaveInterval) {
-        clearInterval(balancingAutoSaveInterval);
-    }
+    if (balancingAutoSaveInterval) clearInterval(balancingAutoSaveInterval);
     
     let lastData = '';
     balancingAutoSaveInterval = setInterval(() => {
@@ -1765,7 +2046,7 @@ function getCurrentBalancingData() {
 
 function hasBalancingData() {
     const data = getCurrentBalancingData();
-    return Object.values(data).some(val => val !== '' && val !== null && val !== undefined);
+    return Object.values(data).some(val => val !== '' && val !== null);
 }
 
 function updateDraftStatusIndicator() {
@@ -1773,18 +2054,6 @@ function updateDraftStatusIndicator() {
     if (indicator) {
         const hasDraft = localStorage.getItem(DRAFT_KEYS.BALANCING) !== null;
         indicator.style.display = hasDraft ? 'flex' : 'none';
-        if (hasDraft) {
-            indicator.innerHTML = `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <polyline points="10 9 9 9 8 9"/>
-                </svg>
-                <span>Draft tersimpan</span>
-            `;
-        }
     }
 }
 
@@ -1796,12 +2065,7 @@ function initBalancingScreen() {
     
     detectShift();
     
-    const draftData = JSON.parse(localStorage.getItem(DRAFT_KEYS.BALANCING));
-    const hasDraft = draftData !== null;
-    
-    if (hasDraft) {
-        loadBalancingDraft();
-    } else {
+    if (!loadBalancingDraft()) {
         loadLastBalancingData();
     }
     
@@ -1829,15 +2093,15 @@ function detectShift() {
     const info = document.getElementById('balancingShiftInfo');
     const kegiatanNum = document.getElementById('kegiatanShiftNum');
     
-    if (badge) badge.textContent = `SHIFT ${shift}`;
-    if (info) info.textContent = `${shiftText} • Auto Save Aktif`;
-    if (kegiatanNum) kegiatanNum.textContent = shift;
-    
     if (badge) {
+        badge.textContent = `SHIFT ${shift}`;
         if (shift === 1) badge.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
         else if (shift === 2) badge.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
         else badge.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
     }
+    
+    if (info) info.textContent = `${shiftText} • Auto Save Aktif`;
+    if (kegiatanNum) kegiatanNum.textContent = shift;
 }
 
 function setDefaultDateTime() {
@@ -1849,7 +2113,7 @@ function setDefaultDateTime() {
     if (timeInput) timeInput.value = now.toTimeString().slice(0, 5);
 }
 
-async function loadLastBalancingData(fromSpreadsheet = true) {
+async function loadLastBalancingData() {
     const loader = document.getElementById('loader');
     const loaderText = document.querySelector('.loader-text h3');
     
@@ -1858,28 +2122,18 @@ async function loadLastBalancingData(fromSpreadsheet = true) {
     
     try {
         let lastData = null;
-        let source = 'local';
         
-        if (fromSpreadsheet && navigator.onLine) {
+        if (navigator.onLine) {
             try {
                 const response = await fetch(`${GAS_URL}?action=getLastBalancing&t=${Date.now()}`);
                 const result = await response.json();
-                
-                if (result.success && result.data) {
-                    lastData = result.data;
-                    source = 'spreadsheet';
-                }
-            } catch (fetchError) {
-                console.warn('Gagal fetch dari spreadsheet:', fetchError);
-            }
+                if (result.success && result.data) lastData = result.data;
+            } catch (e) {}
         }
         
         if (!lastData) {
             const history = JSON.parse(localStorage.getItem(DRAFT_KEYS.BALANCING_HISTORY) || '[]');
-            if (history.length > 0) {
-                lastData = history[history.length - 1];
-                source = 'local';
-            }
+            if (history.length > 0) lastData = history[history.length - 1];
         }
         
         if (!lastData) {
@@ -1888,6 +2142,7 @@ async function loadLastBalancingData(fromSpreadsheet = true) {
             return;
         }
         
+        // Mapping fields...
         const fieldMapping = {
             'loadMW': lastData['Load_MW'],
             'eksporMW': lastData['Ekspor_Impor_MW'],
@@ -1932,28 +2187,18 @@ async function loadLastBalancingData(fromSpreadsheet = true) {
         
         Object.entries(fieldMapping).forEach(([id, value]) => {
             const el = document.getElementById(id);
-            if (el && value !== undefined && value !== null && value !== '') {
-                el.value = value;
-            }
+            if (el && value !== undefined && value !== null && value !== '') el.value = value;
         });
         
         const eksporEl = document.getElementById('eksporMW');
-        if (eksporEl && eksporEl.value) {
-            handleEksporInput(eksporEl);
-        }
+        if (eksporEl && eksporEl.value) handleEksporInput(eksporEl);
         
         calculateLPBalance();
         setDefaultDateTime();
         saveBalancingDraft();
         
-        const msg = source === 'spreadsheet' 
-            ? `✓ Data terakhir dari server dimuat.`
-            : `✓ Data terakhir dari penyimpanan lokal dimuat.`;
-        
-        showCustomAlert(msg, 'success');
-        
+        showCustomAlert('✓ Data terakhir dimuat', 'success');
     } catch (e) {
-        console.error('Error loading last data:', e);
         setDefaultDateTime();
     } finally {
         if (loader) loader.style.display = 'none';
@@ -1961,47 +2206,29 @@ async function loadLastBalancingData(fromSpreadsheet = true) {
 }
 
 function resetBalancingForm() {
-    if (!confirm('Yakin reset form? Semua data akan dikosongkan dan draft akan dihapus.')) {
-        return;
-    }
+    if (!confirm('Yakin reset form? Semua data akan dikosongkan dan draft akan dihapus.')) return;
     
     clearBalancingDraft();
     setDefaultDateTime();
-    
     BALANCING_FIELDS.forEach(fieldId => {
         const element = document.getElementById(fieldId);
-        if (element) {
-            element.value = '';
-        }
+        if (element) element.value = '';
     });
     
-    const selects = ['ss2000Via', 'melterSA2', 'ejectorSteam', 'glandSealSteam'];
-    selects.forEach(id => {
+    ['ss2000Via', 'melterSA2', 'ejectorSteam', 'glandSealSteam'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.selectedIndex = 0;
     });
     
     const eksporEl = document.getElementById('eksporMW');
-    const eksporLabel = document.getElementById('eksporLabel');
-    const eksporHint = document.getElementById('eksporHint');
-    
     if (eksporEl) {
         eksporEl.setAttribute('data-state', '');
         eksporEl.style.borderColor = 'rgba(148, 163, 184, 0.2)';
         eksporEl.style.background = 'rgba(15, 23, 42, 0.6)';
     }
-    if (eksporLabel) {
-        eksporLabel.textContent = 'Ekspor/Impor (MW)';
-        eksporLabel.style.color = '#94a3b8';
-    }
-    if (eksporHint) {
-        eksporHint.innerHTML = '💡 <strong>Minus (-) = Ekspor</strong> | <strong>Plus (+) = Impor</strong>';
-        eksporHint.style.color = '#94a3b8';
-    }
     
     calculateLPBalance();
-    
-    showCustomAlert('Form berhasil direset! Semua field dikosongkan.', 'success');
+    showCustomAlert('Form berhasil direset!', 'success');
 }
 
 function handleEksporInput(input) {
@@ -2036,7 +2263,6 @@ function handleEksporInput(input) {
         input.style.borderColor = '#10b981';
         input.style.background = 'rgba(16, 185, 129, 0.05)';
         input.setAttribute('data-state', 'ekspor');
-        
     } else if (value > 0) {
         if (label) {
             label.textContent = 'Impor (MW)';
@@ -2049,12 +2275,8 @@ function handleEksporInput(input) {
         input.style.borderColor = '#f59e0b';
         input.style.background = 'rgba(245, 158, 11, 0.05)';
         input.setAttribute('data-state', 'impor');
-        
     } else {
-        if (label) {
-            label.textContent = 'Ekspor/Impor (MW)';
-            label.style.color = '#94a3b8';
-        }
+        if (label) label.textContent = 'Ekspor/Impor (MW)';
         if (hint) {
             hint.innerHTML = '⚪ Posisi: <strong>Netral</strong> (Nilai 0)';
             hint.style.color = '#64748b';
@@ -2065,34 +2287,18 @@ function handleEksporInput(input) {
     }
 }
 
-function getEksporImporValue() {
-    const input = document.getElementById('eksporMW');
-    if (!input || !input.value) return 0;
-    const value = parseFloat(input.value);
-    return isNaN(value) ? 0 : value;
-}
-
 function calculateLPBalance() {
     const produksi = parseFloat(document.getElementById('fq1105')?.value) || 0;
-    
-    const konsumsiItems = [
-        'stgSteam', 'pa2Steam', 'puri2Steam', 'deaeratorSteam',
-        'dumpCondenser', 'pcv6105'
-    ];
-    
+    const konsumsiItems = ['stgSteam', 'pa2Steam', 'puri2Steam', 'deaeratorSteam', 'dumpCondenser', 'pcv6105'];
     let totalKonsumsi = 0;
-    konsumsiItems.forEach(id => {
+    
+    konsumsiItems.forEach(id => totalKonsumsi += parseFloat(document.getElementById(id)?.value) || 0);
+    ['melterSA2', 'ejectorSteam', 'glandSealSteam'].forEach(id => {
         totalKonsumsi += parseFloat(document.getElementById(id)?.value) || 0;
     });
     
-    totalKonsumsi += parseFloat(document.getElementById('melterSA2')?.value) || 0;
-    totalKonsumsi += parseFloat(document.getElementById('ejectorSteam')?.value) || 0;
-    totalKonsumsi += parseFloat(document.getElementById('glandSealSteam')?.value) || 0;
-    
     const totalDisplay = document.getElementById('totalKonsumsiSteam');
-    if (totalDisplay) {
-        totalDisplay.textContent = totalKonsumsi.toFixed(1) + ' t/h';
-    }
+    if (totalDisplay) totalDisplay.textContent = totalKonsumsi.toFixed(1) + ' t/h';
     
     const balance = produksi - totalKonsumsi;
     
@@ -2143,10 +2349,7 @@ function formatWhatsAppMessage(data) {
         if (num === undefined || num === null || num === '' || isNaN(num)) return '-';
         const parsed = parseFloat(num);
         if (parsed === 0) return '0';
-        return parsed.toLocaleString('id-ID', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: maxDecimals
-        });
+        return parsed.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: maxDecimals });
     };
     
     const formatInt = (num) => {
@@ -2234,39 +2437,36 @@ async function submitBalancingData() {
         }
     }
     
-    const creds = getCredentialsForAPI();
-    if (!creds) {
-        showCustomAlert('Sesi tidak valid, silakan login ulang', 'error');
+    const session = getSession();
+    if (!session) {
+        showCustomAlert('Sesi tidak valid', 'error');
         return;
     }
     
     const progress = showUploadProgress('Mengirim Data Balancing...');
     currentUploadController = new AbortController();
     
-    const eksporValue = getEksporImporValue();
+    const eksporValue = parseFloat(document.getElementById('eksporMW')?.value) || 0;
     const lpBalance = calculateLPBalance();
     
     const balancingData = {
         type: 'BALANCING',
-        ...creds,
+        username: session.username,
+        password: session.password,
         Operator: currentUser ? currentUser.name : 'Unknown',
         Timestamp: new Date().toISOString(),
-        
         Tanggal: document.getElementById('balancingDate')?.value || '',
         Jam: document.getElementById('balancingTime')?.value || '',
         Shift: currentShift,
-        
         'Load_MW': parseFloat(document.getElementById('loadMW')?.value) || 0,
         'Ekspor_Impor_MW': eksporValue,
         'Ekspor_Impor_Status': eksporValue > 0 ? 'Impor' : (eksporValue < 0 ? 'Ekspor' : 'Netral'),
-        
         'PLN_MW': parseFloat(document.getElementById('plnMW')?.value) || 0,
         'UBB_MW': parseFloat(document.getElementById('ubbMW')?.value) || 0,
         'PIE_MW': parseFloat(document.getElementById('pieMW')?.value) || 0,
         'TG65_MW': parseFloat(document.getElementById('tg65MW')?.value) || 0,
         'TG66_MW': parseFloat(document.getElementById('tg66MW')?.value) || 0,
         'GTG_MW': parseFloat(document.getElementById('gtgMW')?.value) || 0,
-        
         'SS6500_MW': parseFloat(document.getElementById('ss6500MW')?.value) || 0,
         'SS2000_Via': document.getElementById('ss2000Via')?.value || 'TR-Main01',
         'Active_Power_MW': parseFloat(document.getElementById('activePowerMW')?.value) || 0,
@@ -2276,7 +2476,6 @@ async function submitBalancingData() {
         'HVS65_L02_MW': parseFloat(document.getElementById('hvs65l02MW')?.value) || 0,
         'HVS65_L02_Current_A': parseFloat(document.getElementById('hvs65l02Current')?.value) || 0,
         'Total_3B_MW': parseFloat(document.getElementById('total3BMW')?.value) || 0,
-        
         'Produksi_Steam_SA_t/h': parseFloat(document.getElementById('fq1105')?.value) || 0,
         'STG_Steam_t/h': parseFloat(document.getElementById('stgSteam')?.value) || 0,
         'PA2_Steam_t/h': parseFloat(document.getElementById('pa2Steam')?.value) || 0,
@@ -2290,7 +2489,6 @@ async function submitBalancingData() {
         'Total_Konsumsi_Steam_t/h': parseFloat(document.getElementById('totalKonsumsiSteam')?.textContent) || 0,
         'LPS_Balance_t/h': Math.abs(lpBalance),
         'LPS_Balance_Status': lpBalance < 0 ? 'Impor dari 3A' : 'Ekspor ke 3A',
-        
         'PI6122_kg/cm2': parseFloat(document.getElementById('pi6122')?.value) || 0,
         'TI6112_C': parseFloat(document.getElementById('ti6112')?.value) || 0,
         'TI6146_C': parseFloat(document.getElementById('ti6146')?.value) || 0,
@@ -2302,15 +2500,14 @@ async function submitBalancingData() {
         'CT_SU_Pompa': parseInt(document.getElementById('ctSuPompa')?.value) || 0,
         'CT_SA_Fan': parseInt(document.getElementById('ctSaFan')?.value) || 0,
         'CT_SA_Pompa': parseInt(document.getElementById('ctSaPompa')?.value) || 0,
-        
         'Kegiatan_Shift': document.getElementById('kegiatanShift')?.value || ''
     };
     
     try {
         progress.updateText('Menghitung ulang balance...');
         await new Promise(resolve => setTimeout(resolve, 500));
-        
         progress.updateText('Mengirim ke server...');
+        
         await fetch(GAS_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -2320,23 +2517,17 @@ async function submitBalancingData() {
         });
         
         progress.complete();
-        
         showCustomAlert('✓ Data Balancing berhasil dikirim!', 'success');
         
         let balancingHistory = JSON.parse(localStorage.getItem(DRAFT_KEYS.BALANCING_HISTORY) || '[]');
-        balancingHistory.push({
-            ...balancingData,
-            submittedAt: new Date().toISOString()
-        });
+        balancingHistory.push({...balancingData, submittedAt: new Date().toISOString()});
         localStorage.setItem(DRAFT_KEYS.BALANCING_HISTORY, JSON.stringify(balancingHistory));
         
         setTimeout(() => {
             const waMessage = encodeURIComponent(formatWhatsAppMessage(balancingData));
-            const waNumber = '6281382160345';
-            window.open(`https://wa.me/${waNumber}?text=${waMessage}`, '_blank');
+            window.open(`https://wa.me/6281382160345?text=${waMessage}`, '_blank');
             navigateTo('homeScreen');
         }, 1000);
-        
     } catch (error) {
         console.error('Balancing Error:', error);
         progress.error();
@@ -2345,23 +2536,26 @@ async function submitBalancingData() {
         offlineBalancing.push(balancingData);
         localStorage.setItem(DRAFT_KEYS.BALANCING_OFFLINE, JSON.stringify(offlineBalancing));
         
-        setTimeout(() => {
-            showCustomAlert('Gagal mengirim. Data disimpan lokal.', 'error');
-        }, 500);
+        setTimeout(() => showCustomAlert('Gagal mengirim. Data disimpan lokal.', 'error'), 500);
     }
+}
+
+function toggleSS2000Detail() {
+    const select = document.getElementById('ss2000Via');
+    const detail = document.getElementById('ss2000Detail');
+    if (select && detail) detail.style.display = select.value ? 'block' : 'none';
 }
 
 // ============================================
 // PWA INSTALL HANDLER
 // ============================================
+
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     
     if (!isAppInstalled() && !installBannerShown) {
-        setTimeout(() => {
-            showCustomInstallBanner();
-        }, 3000);
+        setTimeout(() => showCustomInstallBanner(), 3000);
     }
 });
 
@@ -2392,7 +2586,6 @@ function showCustomInstallBanner() {
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             z-index: 10002;
             text-align: center;
-            animation: scaleIn 0.3s ease;
         ">
             <div style="
                 width: 80px;
@@ -2404,29 +2597,11 @@ function showCustomInstallBanner() {
                 align-items: center;
                 justify-content: center;
                 font-size: 40px;
-                box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
-            ">
-                ⚡
-            </div>
-            
-            <h3 style="
-                color: #f8fafc;
-                font-size: 1.25rem;
-                font-weight: 700;
-                margin-bottom: 8px;
-            ">
-                Install Aplikasi
-            </h3>
-            
-            <p style="
-                color: #94a3b8;
-                font-size: 0.875rem;
-                margin-bottom: 24px;
-                line-height: 1.5;
-            ">
-                Tambahkan Turbine Log ke layar utama untuk akses lebih cepat dan pengalaman seperti aplikasi native.
+            ">⚡</div>
+            <h3 style="color: #f8fafc; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Install Aplikasi</h3>
+            <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 24px; line-height: 1.5;">
+                Tambahkan Turbine Log ke layar utama untuk akses lebih cepat.
             </p>
-            
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <button onclick="installPWA()" style="
                     width: 100%;
@@ -2438,11 +2613,7 @@ function showCustomInstallBanner() {
                     font-size: 1rem;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: transform 0.2s;
-                " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                    Install Sekarang
-                </button>
-                
+                ">Install Sekarang</button>
                 <button onclick="hideCustomInstallBanner()" style="
                     width: 100%;
                     padding: 12px 24px;
@@ -2452,13 +2623,9 @@ function showCustomInstallBanner() {
                     border-radius: 12px;
                     font-size: 0.9375rem;
                     cursor: pointer;
-                    transition: all 0.2s;
-                ">
-                    Nanti Saja
-                </button>
+                ">Nanti Saja</button>
             </div>
         </div>
-        
         <div style="
             position: fixed;
             inset: 0;
@@ -2474,10 +2641,7 @@ function showCustomInstallBanner() {
 
 function hideCustomInstallBanner() {
     const banner = document.getElementById('customInstallBanner');
-    if (banner) {
-        banner.style.animation = 'fadeOut 0.2s ease';
-        setTimeout(() => banner.remove(), 200);
-    }
+    if (banner) banner.remove();
 }
 
 async function installPWA() {
@@ -2487,18 +2651,14 @@ async function installPWA() {
     }
     
     deferredPrompt.prompt();
-    
     const { outcome } = await deferredPrompt.userChoice;
     
     if (outcome === 'accepted') {
-        console.log('User installed PWA');
         hideCustomInstallBanner();
         showToast('✓ Menginstall aplikasi...', 'success');
     } else {
-        console.log('User dismissed install');
         hideCustomInstallBanner();
     }
-    
     deferredPrompt = null;
 }
 
@@ -2513,44 +2673,26 @@ function showToast(msg, type) {
 }
 
 // ============================================
-// VERSION AUTO-UPDATE SYSTEM
+// VERSION CONTROL
 // ============================================
 
-/**
- * Update semua elemen yang menampilkan versi di seluruh halaman
- * serta resource links untuk cache busting
- */
 function updateVersionDisplays() {
-    // 1. Update elemen dengan class 'version-display'
     document.querySelectorAll('.version-display').forEach(el => {
         el.textContent = 'v' + APP_VERSION;
     });
     
-    // 2. Update meta tag app-version
     const metaVersion = document.querySelector('meta[name="app-version"]');
-    if (metaVersion) {
-        metaVersion.content = APP_VERSION;
-    }
-    
-    console.log(`[Version System] UI Updated to v${APP_VERSION}`);
+    if (metaVersion) metaVersion.content = APP_VERSION;
 }
 
-/**
- * Check for version updates and notify user
- */
 function checkVersionUpdate() {
     const storedVersion = localStorage.getItem('app_stored_version');
     if (storedVersion && storedVersion !== APP_VERSION) {
         console.log(`[Version] Updated from ${storedVersion} to ${APP_VERSION}`);
-        // Optional: Show update notification
-        // showCustomAlert(`Aplikasi diperbarui ke v${APP_VERSION}`, 'info');
     }
     localStorage.setItem('app_stored_version', APP_VERSION);
 }
 
-/**
- * Get current app version
- */
 function getAppVersion() {
     return APP_VERSION;
 }
@@ -2558,6 +2700,7 @@ function getAppVersion() {
 // ============================================
 // KEYBOARD SHORTCUTS
 // ============================================
+
 document.addEventListener('keydown', (e) => {
     const paramScreen = document.getElementById('paramScreen');
     if (!paramScreen || !paramScreen.classList.contains('active')) return;
@@ -2573,8 +2716,8 @@ document.addEventListener('keydown', (e) => {
 // ============================================
 // INITIALIZATION
 // ============================================
+
 window.addEventListener('DOMContentLoaded', () => {
-    // Update versi di seluruh UI terlebih dahulu
     updateVersionDisplays();
     checkVersionUpdate();
     
@@ -2585,12 +2728,12 @@ window.addEventListener('DOMContentLoaded', () => {
     setupTPMListeners();
     
     simulateLoading();
-});
-
-function toggleSS2000Detail() {
-    const select = document.getElementById('ss2000Via');
-    const detail = document.getElementById('ss2000Detail');
-    if (select && detail) {
-        detail.style.display = select.value ? 'block' : 'none';
+    
+    // Init user storage
+    initUserStorage();
+    
+    // Background sync jika online
+    if (navigator.onLine && isAuthenticated) {
+        setTimeout(() => syncUsersFromCloud(false), 2000);
     }
-}
+});
