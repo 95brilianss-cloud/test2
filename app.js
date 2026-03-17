@@ -6,7 +6,7 @@
 // ============================================
 // CONFIGURATION & CONSTANTS
 // ============================================
-const APP_VERSION = '2.0.4';
+const APP_VERSION = '2.0.5';
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz7U2Uu3JzASLs40vyqjmUziSdvwOCOiNu7e4qes1B0Ot3o1rIzVrPsdPCkcl3w00twFg/exec"; // GANTI DENGAN URL DEPLOYMENT ANDA
 
 const AUTH_CONFIG = {
@@ -765,20 +765,32 @@ function loadUserStats() {
 }
 
 // ============================================
-// USER MANAGEMENT UI
+// USER MANAGEMENT UI - FIXED VERSION
 // ============================================
 
 function setupAdminMenu() {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    if (document.getElementById('menuUserManagement')) return;
+    console.log('Setting up admin menu...');
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+        console.log('Not admin, skipping admin menu');
+        return;
+    }
+    
+    // Hapus tombol lama jika ada
+    const oldBtn = document.getElementById('menuUserManagement');
+    if (oldBtn) oldBtn.remove();
     
     const menuGrid = document.getElementById('menuGrid');
-    if (!menuGrid) return;
+    if (!menuGrid) {
+        console.error('menuGrid not found!');
+        return;
+    }
     
-    const btn = document.createElement('button');
+    const btn = document.createElement('div');
     btn.id = 'menuUserManagement';
-    btn.className = 'menu-btn';
+    btn.className = 'menu-card admin';
     btn.onclick = () => {
+        console.log('User management clicked');
         renderUserManagement();
         navigateTo('userManagementScreen');
     };
@@ -791,28 +803,163 @@ function setupAdminMenu() {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
         </div>
-        <div class="menu-text">
-            <span class="menu-title">Kelola User</span>
-            <span class="menu-desc">Admin: ${getUserStats().total} User</span>
+        <div class="menu-content">
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 2px; color: #f8fafc;">Kelola User</h3>
+            <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Admin: ${getUserStats().total} User</p>
         </div>
     `;
     
+    // Insert sebelum menu terakhir (balancing)
     menuGrid.insertBefore(btn, menuGrid.lastElementChild);
+    console.log('Admin menu button added');
+}
+
+function openAddUserModal() {
+    console.log('Opening add user modal...');
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+        showCustomAlert('Hanya admin yang dapat menambah user!', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('addUserModal');
+    if (!modal) {
+        console.error('Modal not found!');
+        showCustomAlert('Error: Modal tidak ditemukan', 'error');
+        return;
+    }
+    
+    // Reset form
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('newName').value = '';
+    document.getElementById('newRole').value = 'operator';
+    document.getElementById('addUserError').style.display = 'none';
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    
+    // Focus username
+    setTimeout(() => {
+        document.getElementById('newUsername').focus();
+    }, 100);
+}
+
+function closeAddUserModal() {
+    const modal = document.getElementById('addUserModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function submitNewUser() {
+    console.log('Submitting new user...');
+    
+    const errorDiv = document.getElementById('addUserError');
+    errorDiv.style.display = 'none';
+    
+    // Get values
+    const username = document.getElementById('newUsername').value.trim().toLowerCase();
+    const password = document.getElementById('newPassword').value;
+    const name = document.getElementById('newName').value.trim();
+    const role = document.getElementById('newRole').value;
+    
+    console.log('Form data:', { username, name, role, passwordLength: password.length });
+    
+    // Validation
+    if (!username || !password || !name) {
+        showError('Semua field wajib diisi!');
+        return;
+    }
+    
+    if (username.length < 3) {
+        showError('Username minimal 3 karakter!');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showError('Password minimal 6 karakter!');
+        return;
+    }
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+        showError('Sesi admin tidak valid!');
+        return;
+    }
+    
+    // Check if exists
+    const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
+    if (users[username]) {
+        showError('Username sudah terdaftar!');
+        return;
+    }
+    
+    // Create user object
+    const newUser = {
+        password: password,
+        role: role,
+        name: name,
+        department: 'Unit Utilitas 3B',
+        status: 'Active',
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser.name,
+        isDefault: false
+    };
+    
+    console.log('Creating user:', newUser);
+    
+    // Save to localStorage
+    users[username] = newUser;
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+    
+    // Log activity
+    logActivity('USER_ADDED', username, `Added by ${currentUser.name}`);
+    
+    // Sync to cloud (optional)
+    if (navigator.onLine) {
+        try {
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'USER_ADD',
+                    adminUsername: currentUser.username,
+                    adminPassword: getCurrentUserPassword(),
+                    username, password, name, role, department: 'Unit Utilitas 3B'
+                })
+            }).catch(e => console.log('Cloud sync skipped'));
+        } catch (e) {}
+    }
+    
+    showCustomAlert(`✓ User ${name} berhasil ditambahkan!`, 'success');
+    closeAddUserModal();
+    renderUserManagement();
+    
+    function showError(msg) {
+        errorDiv.textContent = msg;
+        errorDiv.style.display = 'block';
+        errorDiv.style.animation = 'shake 0.5s ease';
+    }
 }
 
 function renderUserManagement() {
-    if (!requireAuth() || currentUser.role !== 'admin') {
-        showCustomAlert('Akses ditolak', 'error');
+    console.log('Rendering user management...');
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+        showCustomAlert('Akses ditolak!', 'error');
         return;
     }
     
     const stats = getUserStats();
     const users = getAllUsers();
-    const container = document.getElementById('userManagementList');
+    
     const countEl = document.getElementById('userCount');
+    const container = document.getElementById('userManagementList');
     
     if (countEl) countEl.textContent = `${stats.total} User (${stats.custom} Custom)`;
-    if (!container) return;
+    if (!container) {
+        console.error('Container not found!');
+        return;
+    }
     
     let html = `
         <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 16px; padding: 20px; margin-bottom: 24px;">
@@ -907,6 +1054,7 @@ function renderUserManagement() {
     }
     
     container.innerHTML = html;
+    console.log('User management rendered');
 }
 
 function confirmDeleteUser(username, name) {
