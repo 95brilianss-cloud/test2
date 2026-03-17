@@ -6,7 +6,7 @@
 // ============================================
 // CONFIGURATION & CONSTANTS
 // ============================================
-const APP_VERSION = '2.0.5';
+const APP_VERSION = '2.0.6';
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz7U2Uu3JzASLs40vyqjmUziSdvwOCOiNu7e4qes1B0Ot3o1rIzVrPsdPCkcl3w00twFg/exec"; // GANTI DENGAN URL DEPLOYMENT ANDA
 
 const AUTH_CONFIG = {
@@ -814,47 +814,70 @@ function setupAdminMenu() {
     console.log('Admin menu button added');
 }
 
+// ============================================
+// MODAL FUNCTIONS - FIXED
+// ============================================
+
 function openAddUserModal() {
-    console.log('Opening add user modal...');
+    console.log('🟢 Opening add user modal...');
     
-    if (!currentUser || currentUser.role !== 'admin') {
+    // Cek apakah admin
+    if (!currentUser) {
+        console.error('❌ No current user');
+        showCustomAlert('Silakan login terlebih dahulu!', 'error');
+        return;
+    }
+    
+    if (currentUser.role !== 'admin') {
+        console.error('❌ Not admin:', currentUser.role);
         showCustomAlert('Hanya admin yang dapat menambah user!', 'error');
         return;
     }
     
     const modal = document.getElementById('addUserModal');
     if (!modal) {
-        console.error('Modal not found!');
+        console.error('❌ Modal element not found');
         showCustomAlert('Error: Modal tidak ditemukan', 'error');
         return;
     }
+    
+    console.log('✅ Modal found, showing...');
     
     // Reset form
     document.getElementById('newUsername').value = '';
     document.getElementById('newPassword').value = '';
     document.getElementById('newName').value = '';
     document.getElementById('newRole').value = 'operator';
-    document.getElementById('addUserError').style.display = 'none';
     
-    // Show modal
+    // Hide error
+    const errorDiv = document.getElementById('addUserError');
+    if (errorDiv) errorDiv.style.display = 'none';
+    
+    // Show modal - REMOVE hidden class
     modal.classList.remove('hidden');
     
     // Focus username
     setTimeout(() => {
-        document.getElementById('newUsername').focus();
+        const usernameInput = document.getElementById('newUsername');
+        if (usernameInput) usernameInput.focus();
     }, 100);
+    
+    console.log('✅ Modal opened');
 }
 
 function closeAddUserModal() {
+    console.log('🔴 Closing modal...');
     const modal = document.getElementById('addUserModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
 async function submitNewUser() {
-    console.log('Submitting new user...');
+    console.log('📝 Submitting new user...');
     
     const errorDiv = document.getElementById('addUserError');
-    errorDiv.style.display = 'none';
+    if (errorDiv) errorDiv.style.display = 'none';
     
     // Get values
     const username = document.getElementById('newUsername').value.trim().toLowerCase();
@@ -862,7 +885,7 @@ async function submitNewUser() {
     const name = document.getElementById('newName').value.trim();
     const role = document.getElementById('newRole').value;
     
-    console.log('Form data:', { username, name, role, passwordLength: password.length });
+    console.log('Form data:', { username, name, role });
     
     // Validation
     if (!username || !password || !name) {
@@ -880,19 +903,14 @@ async function submitNewUser() {
         return;
     }
     
-    if (!currentUser || currentUser.role !== 'admin') {
-        showError('Sesi admin tidak valid!');
-        return;
-    }
-    
-    // Check if exists
+    // Check existing
     const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '{}');
     if (users[username]) {
         showError('Username sudah terdaftar!');
         return;
     }
     
-    // Create user object
+    // Create user
     const newUser = {
         password: password,
         role: role,
@@ -904,42 +922,42 @@ async function submitNewUser() {
         isDefault: false
     };
     
-    console.log('Creating user:', newUser);
-    
-    // Save to localStorage
+    // Save
     users[username] = newUser;
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
     
-    // Log activity
-    logActivity('USER_ADDED', username, `Added by ${currentUser.name}`);
+    console.log('✅ User saved:', newUser);
     
-    // Sync to cloud (optional)
-    if (navigator.onLine) {
-        try {
-            fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'USER_ADD',
-                    adminUsername: currentUser.username,
-                    adminPassword: getCurrentUserPassword(),
-                    username, password, name, role, department: 'Unit Utilitas 3B'
-                })
-            }).catch(e => console.log('Cloud sync skipped'));
-        } catch (e) {}
-    }
-    
+    // Success
     showCustomAlert(`✓ User ${name} berhasil ditambahkan!`, 'success');
     closeAddUserModal();
     renderUserManagement();
     
     function showError(msg) {
-        errorDiv.textContent = msg;
-        errorDiv.style.display = 'block';
-        errorDiv.style.animation = 'shake 0.5s ease';
+        console.error('❌ Error:', msg);
+        if (errorDiv) {
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+        }
     }
 }
+
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('addUserModal');
+    if (modal && !modal.classList.contains('hidden')) {
+        if (e.target === modal) {
+            closeAddUserModal();
+        }
+    }
+});
+
+// Escape key to close
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAddUserModal();
+    }
+});
 
 function renderUserManagement() {
     console.log('Rendering user management...');
