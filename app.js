@@ -1,7 +1,7 @@
 // ============================================
 // TURBINE LOGSHEET PRO - VERSION CONTROL
 // ============================================
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.0.2';
 
 // ============================================
 // CONFIGURATION & CONSTANTS
@@ -33,16 +33,16 @@ const USER_CREDENTIALS = {
         name: 'Administrator',
         department: 'Unit Utilitas 3B'
     },
-    'operator': { 
+    '2146043': { 
         password: 'operator123', 
         role: 'operator', 
-        name: 'Operator Shift',
+        name: 'Ali Husanan',
         department: 'Unit Utilitas 3B'
     },
-    'utilitas3b': { 
-        password: 'pgresik2024', 
+    '2146033': { 
+        password: '2146033', 
         role: 'operator', 
-        name: 'Unit Utilitas 3B',
+        name: 'Brilian Eriko S',
         department: 'Unit Utilitas 3B'
     }
 };
