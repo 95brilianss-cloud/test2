@@ -1,6 +1,6 @@
 // ============================================
 // TURBINE LOGSHEET PRO - APP.JS FINAL FIXED
-// Version: 2.1.1
+// Version: 2.1.2
 // ============================================
 
 // ============================================
@@ -296,6 +296,94 @@ function getAllUsers() {
         console.error('Error parsing users:', e);
         return [];
     }
+}
+
+// ============================================
+// FUNGSI BARU: CEK USER INACTIVE
+// ============================================
+function getInactiveUser(username) {
+    try {
+        const stored = localStorage.getItem(USER_STORAGE_KEY);
+        const users = stored ? JSON.parse(stored) : {};
+        const userKey = username.toLowerCase();
+        
+        if (users[userKey] && users[userKey].status === 'Inactive') {
+            return users[userKey];
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// ============================================
+// FUNGSI BARU: REAKTIVASI USER
+// ============================================
+async function reactivateUser(username, newPassword, newName, newRole) {
+    console.log('Reactivating user:', username);
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+        showCustomAlert('Hanya admin yang dapat mengaktifkan user!', 'error');
+        return false;
+    }
+    
+    let users = {};
+    try {
+        const stored = localStorage.getItem(USER_STORAGE_KEY);
+        users = stored ? JSON.parse(stored) : {};
+    } catch (e) {
+        console.error('Error reading users:', e);
+        return false;
+    }
+    
+    const userKey = username.toLowerCase();
+    
+    if (!users[userKey] || users[userKey].status !== 'Inactive') {
+        showCustomAlert('User tidak ditemukan atau masih aktif', 'error');
+        return false;
+    }
+    
+    // Update data user yang dinonaktifkan
+    users[userKey] = {
+        ...users[userKey],  // Pertahankan data lama (createdAt, history, dll)
+        password: newPassword,
+        name: newName,
+        role: newRole,
+        status: 'Active',
+        reactivatedAt: new Date().toISOString(),
+        reactivatedBy: currentUser.name,
+        updatedAt: new Date().toISOString()
+    };
+    
+    try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+        console.log('User reactivated successfully');
+    } catch (e) {
+        console.error('Error saving users:', e);
+        showCustomAlert('Gagal mengaktifkan user', 'error');
+        return false;
+    }
+    
+    logActivity('USER_REACTIVATED', username, `Reactivated by ${currentUser.name}`);
+    
+    // Sync ke cloud
+    if (navigator.onLine) {
+        try {
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'USER_REACTIVATE',
+                    adminUsername: currentUser.username,
+                    adminPassword: getCurrentUserPassword(),
+                    username, password: newPassword, name: newName, role: newRole
+                })
+            });
+        } catch (e) {}
+    }
+    
+    return true;
 }
 
 function validateUserLocal(username, password) {
@@ -709,6 +797,9 @@ function closeAddUserModal() {
     if (errorDiv) errorDiv.style.display = 'none';
 }
 
+// ============================================
+// MODIFIKASI SUBMIT NEW USER - DENGAN REAKTIVASI
+// ============================================
 async function submitNewUser() {
     console.log('=== SUBMIT NEW USER START ===');
     
@@ -770,15 +861,50 @@ async function submitNewUser() {
             users = {};
         }
         
-        // Cek apakah user sudah ada (case insensitive sudah dihandle oleh toLowerCase di atas)
-        if (users[username]) {
-            console.log('User found:', users[username]);
-            const existingUser = users[username];
-            showError(`Username "${username}" sudah terdaftar atas nama "${existingUser.name}" (Role: ${existingUser.role})`);
+        const userKey = username.toLowerCase();
+        
+        // 6. CEK USER AKTIF (yang sudah ada dan aktif)
+        if (users[userKey] && users[userKey].status === 'Active') {
+            console.log('Active user found:', users[userKey]);
+            const existingUser = users[userKey];
+            showError(`Username "${username}" sudah terdaftar atas nama "${existingUser.name}" (Role: ${existingUser.role}). Silakan gunakan username lain.`);
             return;
         }
         
-        // 6. Create user object
+        // 7. CEK USER INACTIVE (yang sudah dihapus) → Tawarkan reaktivasi
+        if (users[userKey] && users[userKey].status === 'Inactive') {
+            const inactiveUser = users[userKey];
+            console.log('Inactive user found, offering reactivation:', inactiveUser);
+            
+            // Konfirmasi reaktivasi
+            const confirmReactivate = confirm(
+                `⚠️ USER SUDAH PERNAH ADA\n\n` +
+                `Username "${username}" pernah terdaftar atas nama "${inactiveUser.name}" ` +
+                `tapi sudah dihapus pada ${new Date(inactiveUser.updatedAt).toLocaleDateString('id-ID')}.\n\n` +
+                `Apakah Anda ingin MENGAKTIFKAN KEMBALI user ini dengan:\n` +
+                `• Nama: ${name}\n` +
+                `• Role: ${role}\n` +
+                `• Password: (password baru yang diinput)\n\n` +
+                `Klik OK untuk mengaktifkan kembali, atau Cancel untuk membatalkan.`
+            );
+            
+            if (confirmReactivate) {
+                // Proses reaktivasi
+                if (await reactivateUser(username, password, name, role)) {
+                    showCustomAlert(`✓ User ${name} (@${username}) berhasil diaktifkan kembali!`, 'success');
+                    closeAddUserModal();
+                    renderUserManagement();
+                    setTimeout(setupAdminMenu, 100);
+                } else {
+                    showError('Gagal mengaktifkan user. Silakan coba lagi.');
+                }
+            } else {
+                showError('Pembuatan user dibatalkan. Gunakan username lain jika ingin membuat user baru.');
+            }
+            return;
+        }
+        
+        // 8. CREATE USER BARU (jika username belum ada sama sekali)
         const newUser = {
             password: password,
             role: role,
@@ -790,23 +916,23 @@ async function submitNewUser() {
             isDefault: false
         };
         
-        console.log('Creating user object:', newUser);
+        console.log('Creating new user:', newUser);
         
-        // 7. Save to localStorage
-        users[username] = newUser;
+        users[userKey] = newUser;
+        
         try {
             localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
             console.log('User saved to localStorage. Total users:', Object.keys(users).length);
         } catch (e) {
             console.error('Error saving to localStorage:', e);
-            showError('Gagal menyimpan data lokal: ' + e.message);
+            showError('Gagal menyimpan data: ' + e.message);
             return;
         }
         
-        // 8. Log activity
+        // 9. Log activity
         logActivity('USER_ADDED', username, `Added by ${currentUser.name}`);
         
-        // 9. Sync to cloud (async, don't block)
+        // 10. Sync to cloud (async, don't block)
         if (navigator.onLine) {
             try {
                 fetch(GAS_URL, {
@@ -825,13 +951,11 @@ async function submitNewUser() {
             }
         }
         
-        // 10. Success
+        // 11. Success
         console.log('=== USER CREATED SUCCESSFULLY ===');
         showCustomAlert(`✓ User ${name} (@${username}) berhasil ditambahkan!`, 'success');
         closeAddUserModal();
         renderUserManagement();
-        
-        // Update menu stats
         setTimeout(setupAdminMenu, 100);
         
     } catch (err) {
@@ -846,6 +970,7 @@ async function submitNewUser() {
             errorDiv.textContent = msg;
             errorDiv.style.display = 'block';
             errorDiv.style.animation = 'shake 0.5s ease';
+            setTimeout(() => errorDiv.style.animation = '', 500);
         } else {
             showCustomAlert(msg, 'error');
         }
@@ -1038,13 +1163,14 @@ function deleteUser(username) {
         return false;
     }
     
+    // SOFT DELETE - Ubah status jadi Inactive, bukan hapus permanen
     users[userKey].status = 'Inactive';
     users[userKey].updatedAt = new Date().toISOString();
     users[userKey].updatedBy = currentUser.name;
     
     try {
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
-        console.log('User deleted successfully');
+        console.log('User soft deleted successfully');
     } catch (e) {
         console.error('Error saving users:', e);
         return false;
