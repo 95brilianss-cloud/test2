@@ -25,7 +25,7 @@ const DRAFT_KEYS = {
     BALANCING_HISTORY: 'balancing_history_v2'
 };
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzTahRMM2mmgwNgZuOxpbwVJAqFs7HRx3AjRrkShVX3VJ__NqQ0zbenBugI2KRdOSlDXw/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxryAS54MEe7C9quVWfz4lceQw_yDCyiQUEfjfE2Lix3NmJEYg3hB6OvuOzgpkPpS-yNw/exec";
 
 const USER_CREDENTIALS = {
     'admin': { 
