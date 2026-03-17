@@ -1,7 +1,7 @@
 // ============================================
 // TURBINE LOGSHEET PRO - VERSION CONTROL
 // ============================================
-const APP_VERSION = '2.0.2';
+const APP_VERSION = '2.0.3';
 
 // ============================================
 // CONFIGURATION & CONSTANTS
@@ -397,8 +397,7 @@ function loginOperator() {
     setTimeout(() => {
         updateUIForAuthenticatedUser();
         navigateTo('homeScreen');
-        loadUserStats();
-    }, 800);
+        }, 800);
 }
 
 function showLoginError(message, focusElement) {
@@ -499,28 +498,6 @@ function requireAuth() {
         return false;
     }
     return true;
-}
-
-function loadUserStats() {
-    const totalAreas = Object.keys(AREAS).length;
-    let completedAreas = 0;
-    
-    Object.entries(AREAS).forEach(([areaName, params]) => {
-        const filled = currentInput[areaName] ? Object.keys(currentInput[areaName]).length : 0;
-        if (filled === params.length && filled > 0) completedAreas++;
-    });
-    
-    const statProgress = document.getElementById('statProgress');
-    const statAreas = document.getElementById('statAreas');
-    
-    if (statProgress) {
-        const percent = Math.round((completedAreas / totalAreas) * 100);
-        statProgress.textContent = `${percent}%`;
-    }
-    
-    if (statAreas) {
-        statAreas.textContent = `${completedAreas}/${totalAreas}`;
-    }
 }
 
 // ============================================
