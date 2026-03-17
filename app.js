@@ -33,16 +33,16 @@ const USER_CREDENTIALS = {
         name: 'Administrator',
         department: 'Unit Utilitas 3B'
     },
-    '2146043': { 
+    'operator': { 
         password: 'operator123', 
         role: 'operator', 
-        name: 'Ali Husanan',
+        name: 'Operator Shift',
         department: 'Unit Utilitas 3B'
     },
-    '2146033': { 
-        password: '2146033', 
+    'utilitas3b': { 
+        password: 'pgresik2024', 
         role: 'operator', 
-        name: 'Brilian Eriko S',
+        name: 'Unit Utilitas 3B',
         department: 'Unit Utilitas 3B'
     }
 };
@@ -397,7 +397,8 @@ function loginOperator() {
     setTimeout(() => {
         updateUIForAuthenticatedUser();
         navigateTo('homeScreen');
-        }, 800);
+        loadUserStats();
+    }, 800);
 }
 
 function showLoginError(message, focusElement) {
@@ -498,6 +499,28 @@ function requireAuth() {
         return false;
     }
     return true;
+}
+
+function loadUserStats() {
+    const totalAreas = Object.keys(AREAS).length;
+    let completedAreas = 0;
+    
+    Object.entries(AREAS).forEach(([areaName, params]) => {
+        const filled = currentInput[areaName] ? Object.keys(currentInput[areaName]).length : 0;
+        if (filled === params.length && filled > 0) completedAreas++;
+    });
+    
+    const statProgress = document.getElementById('statProgress');
+    const statAreas = document.getElementById('statAreas');
+    
+    if (statProgress) {
+        const percent = Math.round((completedAreas / totalAreas) * 100);
+        statProgress.textContent = `${percent}%`;
+    }
+    
+    if (statAreas) {
+        statAreas.textContent = `${completedAreas}/${totalAreas}`;
+    }
 }
 
 // ============================================
