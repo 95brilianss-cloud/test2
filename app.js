@@ -1,8 +1,10 @@
+// ============================================
+// TURBINE LOGSHEET PRO - FRONTEND (FULL)
+// Version: 2.1.0-SUPERSIMPLE (Plaintext Edition)
+// ============================================
 
-// ============================================
-// TURBINE LOGSHEET PRO - VERSION CONTROL
-// ============================================
-const APP_VERSION = '2.0.3';
+const APP_VERSION = '2.1.0';
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwD12PHnUtFcu3yaUAyFKMn-qLt3zS90woo7sWIdj9IZf4vavZoTC8P3UGukeyVH_Lk/exec"; // ⚠️ GANTI DENGAN URL DEPLOYMENT ANDA
 
 // ============================================
 // CONFIGURATION & CONSTANTS
@@ -10,7 +12,7 @@ const APP_VERSION = '2.0.3';
 const AUTH_CONFIG = {
     SESSION_KEY: 'turbine_session_v2',
     USER_KEY: 'turbine_user_v2',
-    SESSION_DURATION: 8 * 60 * 60 * 1000,
+    SESSION_DURATION: 8 * 60 * 60 * 1000, // 8 jam
     REMEMBER_ME_DURATION: 30 * 24 * 60 * 60 * 1000
 };
 
@@ -25,27 +27,11 @@ const DRAFT_KEYS = {
     BALANCING_HISTORY: 'balancing_history_v2'
 };
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxryAS54MEe7C9quVWfz4lceQw_yDCyiQUEfjfE2Lix3NmJEYg3hB6OvuOzgpkPpS-yNw/exec";
-
-const USER_CREDENTIALS = {
-    'admin': { 
-        password: 'admin123', 
-        role: 'admin', 
-        name: 'Administrator',
-        department: 'Unit Utilitas 3B'
-    },
-    'operator': { 
-        password: 'operator123', 
-        role: 'operator', 
-        name: 'Operator Shift',
-        department: 'Unit Utilitas 3B'
-    },
-    'utilitas3b': { 
-        password: 'pgresik2024', 
-        role: 'operator', 
-        name: 'Unit Utilitas 3B',
-        department: 'Unit Utilitas 3B'
-    }
+// Backup users lokal (fallback jika server error)
+const LOCAL_USERS = {
+    'admin': { password: 'admin123', role: 'admin', name: 'Administrator', department: 'Unit Utilitas 3B' },
+    'operator': { password: 'operator123', role: 'operator', name: 'Operator Shift', department: 'Unit Utilitas 3B' },
+    'utilitas3b': { password: 'pgresik2024', role: 'operator', name: 'Unit Utilitas 3B', department: 'Unit Utilitas 3B' }
 };
 
 // ============================================
@@ -261,23 +247,8 @@ if ('serviceWorker' in navigator) {
 }
 
 // ============================================
-// AUTHENTICATION FUNCTIONS
+// AUTHENTICATION - SUPER SIMPLE (PLAINTEXT)
 // ============================================
-function togglePasswordVisibility() {
-    const passwordInput = document.getElementById('operatorPassword');
-    const eyeIcon = document.getElementById('eyeIcon');
-    const eyeOffIcon = document.getElementById('eyeOffIcon');
-    
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        eyeIcon.style.display = 'none';
-        eyeOffIcon.style.display = 'block';
-    } else {
-        passwordInput.type = 'password';
-        eyeIcon.style.display = 'block';
-        eyeOffIcon.style.display = 'none';
-    }
-}
 
 function initAuth() {
     const session = getSession();
@@ -312,7 +283,7 @@ function saveSession(user, password, rememberMe = false) {
     const session = {
         user: user,
         username: user.username,
-        password: password,
+        password: password, // SIMPAN PLAINTEXT untuk re-auth
         loginTime: Date.now(),
         expiresAt: Date.now() + duration,
         rememberMe: rememberMe
@@ -338,24 +309,30 @@ function clearSession() {
     isAuthenticated = false;
 }
 
-function loginOperator() {
+/**
+ * Login Super Simple - Kirim plaintext ke server
+ */
+async function loginOperator() {
     const usernameInput = document.getElementById('operatorName');
     const passwordInput = document.getElementById('operatorPassword');
     const errorMsg = document.getElementById('loginError');
+    const loginBtn = document.getElementById('loginBtn');
     
     if (!usernameInput || !passwordInput) {
         console.error('Login inputs not found');
         return;
     }
     
-    const username = usernameInput.value.trim().toLowerCase();
+    const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
     
+    // Reset error
     usernameInput.classList.remove('error');
     passwordInput.classList.remove('error');
     errorMsg.style.display = 'none';
     errorMsg.classList.remove('show');
     
+    // Validasi input
     if (!username) {
         showLoginError('Username wajib diisi!', usernameInput);
         return;
@@ -371,35 +348,122 @@ function loginOperator() {
         return;
     }
     
-    const user = USER_CREDENTIALS[username];
-    
-    if (!user || user.password !== password) {
-        showLoginError('Username atau password salah!', usernameInput);
-        passwordInput.value = '';
-        passwordInput.focus();
-        return;
+    // Loading state
+    if (loginBtn) {
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner';
+        spinner.style.cssText = 'display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;';
+        loginBtn.innerHTML = '';
+        loginBtn.appendChild(spinner);
+        loginBtn.appendChild(document.createTextNode(' Memeriksa...'));
+        loginBtn.disabled = true;
     }
     
-    const userSession = {
-        name: user.name,
-        username: username,
-        id: user.role.toUpperCase() + '-' + Date.now().toString(36).toUpperCase().slice(-6),
-        role: user.role,
-        department: user.department,
-        loginTime: new Date().toISOString()
-    };
-    
-    saveSession(userSession, password, false);
-    currentUser = userSession;
-    isAuthenticated = true;
-    
-    showCustomAlert(`Selamat datang, ${user.name}!`, 'success');
-    
-    setTimeout(() => {
-        updateUIForAuthenticatedUser();
-        navigateTo('homeScreen');
-        loadUserStats();
-    }, 800);
+    // Coba login via API (plaintext)
+    try {
+        const callbackName = 'loginCallback_' + Date.now();
+        
+        const result = await new Promise((resolve) => {
+            const script = document.createElement('script');
+            const timeout = setTimeout(() => {
+                cleanup();
+                resolve({ success: false, offline: true, message: 'Timeout' });
+            }, 10000);
+            
+            window[callbackName] = (response) => {
+                clearTimeout(timeout);
+                cleanup();
+                resolve(response);
+            };
+            
+            const cleanup = () => {
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+            };
+            
+            // KIRIM PLAINTEXT KE SERVER
+            const params = new URLSearchParams({
+                action: 'login',
+                username: username,
+                password: password, // PLAINTEXT!
+                callback: callbackName,
+                _: Date.now()
+            });
+            
+            script.src = `${GAS_URL}?${params.toString()}`;
+            script.onerror = () => {
+                cleanup();
+                resolve({ success: false, offline: true, message: 'Network error' });
+            };
+            
+            document.body.appendChild(script);
+        });
+        
+        // Handle result
+        if (result.success) {
+            // Sukses login dari server
+            const userSession = {
+                name: result.user.name,
+                username: username.toLowerCase(),
+                id: result.user.role.toUpperCase() + '-' + Date.now().toString(36).toUpperCase().slice(-6),
+                role: result.user.role,
+                department: result.user.department,
+                loginTime: new Date().toISOString()
+            };
+            
+            saveSession(userSession, password, false);
+            currentUser = userSession;
+            isAuthenticated = true;
+            
+            showCustomAlert(`Selamat datang, ${result.user.name}!`, 'success');
+            
+            setTimeout(() => {
+                updateUIForAuthenticatedUser();
+                navigateTo('homeScreen');
+                loadUserStats();
+            }, 800);
+            
+        } else {
+            // Gagal - coba fallback local (offline mode)
+            const localUser = LOCAL_USERS[username.toLowerCase()];
+            if (result.offline && localUser && localUser.password === password) {
+                // Mode offline
+                const userSession = {
+                    name: localUser.name,
+                    username: username.toLowerCase(),
+                    role: localUser.role,
+                    department: localUser.department,
+                    loginTime: new Date().toISOString(),
+                    offlineMode: true
+                };
+                
+                saveSession(userSession, password, false);
+                currentUser = userSession;
+                isAuthenticated = true;
+                
+                showCustomAlert('Login mode offline (server tidak terjangkau)', 'warning');
+                
+                setTimeout(() => {
+                    updateUIForAuthenticatedUser();
+                    navigateTo('homeScreen');
+                }, 800);
+            } else {
+                // Gagal total
+                showLoginError(result.error || 'Username atau password salah!', usernameInput);
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        }
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        showLoginError('Terjadi kesalahan koneksi', usernameInput);
+    } finally {
+        if (loginBtn) {
+            loginBtn.innerHTML = 'Masuk';
+            loginBtn.disabled = false;
+        }
+    }
 }
 
 function showLoginError(message, focusElement) {
@@ -414,9 +478,7 @@ function showLoginError(message, focusElement) {
     if (usernameInput) usernameInput.classList.add('error');
     if (passwordInput) passwordInput.classList.add('error');
     
-    if (focusElement) {
-        focusElement.focus();
-    }
+    if (focusElement) focusElement.focus();
     
     setTimeout(() => {
         errorMsg.classList.remove('show');
@@ -444,14 +506,9 @@ function logoutOperator() {
 }
 
 function showLoginScreen() {
-    document.querySelectorAll('.screen').forEach(s => {
-        s.classList.remove('active');
-    });
-    
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) {
-        loginScreen.classList.add('active');
-    }
+    if (loginScreen) loginScreen.classList.add('active');
     
     const savedUser = localStorage.getItem(AUTH_CONFIG.USER_KEY);
     if (savedUser) {
@@ -471,14 +528,7 @@ function showLoginScreen() {
 function updateUIForAuthenticatedUser() {
     if (!currentUser) return;
     
-    const userElements = [
-        'displayUserName',
-        'tpmHeaderUser',
-        'tpmInputUser',
-        'areaListUser',
-        'paramUser',
-        'balancingUser'
-    ];
+    const userElements = ['displayUserName', 'tpmHeaderUser', 'tpmInputUser', 'areaListUser', 'paramUser', 'balancingUser'];
     
     userElements.forEach(id => {
         const el = document.getElementById(id);
@@ -489,6 +539,12 @@ function updateUIForAuthenticatedUser() {
                 el.textContent = currentUser.name;
             }
         }
+    });
+    
+    // Show/hide admin menu
+    const adminOnlyElements = document.querySelectorAll('.admin-only');
+    adminOnlyElements.forEach(el => {
+        el.style.display = currentUser.role === 'admin' ? 'block' : 'none';
     });
 }
 
@@ -502,31 +558,501 @@ function requireAuth() {
     return true;
 }
 
-function loadUserStats() {
-    const totalAreas = Object.keys(AREAS).length;
-    let completedAreas = 0;
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('operatorPassword');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const eyeOffIcon = document.getElementById('eyeOffIcon');
     
-    Object.entries(AREAS).forEach(([areaName, params]) => {
-        const filled = currentInput[areaName] ? Object.keys(currentInput[areaName]).length : 0;
-        if (filled === params.length && filled > 0) completedAreas++;
-    });
-    
-    const statProgress = document.getElementById('statProgress');
-    const statAreas = document.getElementById('statAreas');
-    
-    if (statProgress) {
-        const percent = Math.round((completedAreas / totalAreas) * 100);
-        statProgress.textContent = `${percent}%`;
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        if (eyeIcon) eyeIcon.style.display = 'none';
+        if (eyeOffIcon) eyeOffIcon.style.display = 'block';
+    } else {
+        passwordInput.type = 'password';
+        if (eyeIcon) eyeIcon.style.display = 'block';
+        if (eyeOffIcon) eyeOffIcon.style.display = 'none';
+    }
+}
+
+function getCredentialsForAPI() {
+    const session = getSession();
+    if (session && session.username && session.password) {
+        return {
+            username: session.username,
+            password: session.password // PLAINTEXT
+        };
+    }
+    return null;
+}
+
+// ============================================
+// USER MANAGEMENT (Admin Only)
+// ============================================
+
+async function loadUserManagement() {
+    if (!currentUser || currentUser.role !== 'admin') {
+        showCustomAlert('Akses ditolak. Hanya admin yang bisa mengakses.', 'error');
+        return;
     }
     
-    if (statAreas) {
-        statAreas.textContent = `${completedAreas}/${totalAreas}`;
+    navigateTo('userManagementScreen');
+    
+    const container = document.getElementById('userListContainer');
+    if (container) {
+        container.innerHTML = '<div class="loading" style="text-align:center;padding:20px;">Memuat data user...</div>';
+    }
+    
+    try {
+        const callbackName = 'usersCallback_' + Date.now();
+        
+        const result = await new Promise((resolve) => {
+            const script = document.createElement('script');
+            const timeout = setTimeout(() => {
+                cleanup();
+                resolve({ success: false, offline: true });
+            }, 10000);
+            
+            window[callbackName] = (response) => {
+                clearTimeout(timeout);
+                cleanup();
+                resolve(response);
+            };
+            
+            const cleanup = () => {
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+            };
+            
+            const params = new URLSearchParams({
+                action: 'getUsers',
+                admin: currentUser.username,
+                callback: callbackName,
+                _: Date.now()
+            });
+            
+            script.src = `${GAS_URL}?${params.toString()}`;
+            script.onerror = () => {
+                cleanup();
+                resolve({ success: false, offline: true });
+            };
+            
+            document.body.appendChild(script);
+        });
+        
+        if (result.success) {
+            renderUserTable(result.users);
+        } else if (result.offline) {
+            // Fallback ke local
+            const localUsers = Object.entries(LOCAL_USERS).map(([username, data]) => ({
+                username: username,
+                password: data.password,
+                role: data.role,
+                name: data.name,
+                department: data.department,
+                status: 'ACTIVE (local)'
+            }));
+            renderUserTable(localUsers, true);
+        } else {
+            if (container) container.innerHTML = `<div class="error" style="color:#ef4444;padding:20px;">Gagal memuat: ${result.error || 'Unknown error'}</div>`;
+        }
+        
+    } catch (error) {
+        console.error('Error loading users:', error);
+        if (container) container.innerHTML = `<div class="error" style="color:#ef4444;padding:20px;">Error: ${error.message}</div>`;
+    }
+}
+
+function renderUserTable(users, isOffline = false) {
+    const container = document.getElementById('userListContainer');
+    if (!container) return;
+    
+    let html = `
+        <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;color:#f8fafc;">Manajemen User ${isOffline ? '<span style="color:#f59e0b;font-size:0.8em;">(Offline)</span>' : ''}</h3>
+            <button onclick="showAddUserForm()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;">+ Tambah User</button>
+        </div>
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.9em;">
+                <thead>
+                    <tr style="background:rgba(148,163,184,0.1);">
+                        <th style="padding:12px;text-align:left;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(148,163,184,0.2);">Username</th>
+                        <th style="padding:12px;text-align:left;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(148,163,184,0.2);">Nama</th>
+                        <th style="padding:12px;text-align:left;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(148,163,184,0.2);">Role</th>
+                        <th style="padding:12px;text-align:left;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(148,163,184,0.2);">Status</th>
+                        <th style="padding:12px;text-align:center;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(148,163,184,0.2);">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    users.forEach(user => {
+        const isActive = user.status === 'ACTIVE' || user.status === 'ACTIVE (local)';
+        const statusColor = isActive ? '#10b981' : '#ef4444';
+        const roleBadge = user.role === 'admin' 
+            ? `<span style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;padding:2px 8px;border-radius:4px;font-size:0.75em;font-weight:600;">Admin</span>` 
+            : `<span style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;padding:2px 8px;border-radius:4px;font-size:0.75em;font-weight:600;">Operator</span>`;
+            
+        html += `
+            <tr style="border-bottom:1px solid rgba(148,163,184,0.1);">
+                <td style="padding:12px;color:#f8fafc;font-weight:500;">${user.username}</td>
+                <td style="padding:12px;color:#cbd5e1;">${user.name}</td>
+                <td style="padding:12px;">${roleBadge}</td>
+                <td style="padding:12px;"><span style="color:${statusColor};font-weight:600;font-size:0.9em;">● ${user.status}</span></td>
+                <td style="padding:12px;text-align:center;">
+                    <button onclick="editUser('${user.username}')" style="background:rgba(59,130,246,0.2);color:#60a5fa;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;" title="Edit">✏️</button>
+                    <button onclick="toggleUserStatus('${user.username}', '${isActive ? 'ACTIVE' : 'INACTIVE'}')" style="background:${isActive ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)'};color:${isActive ? '#f59e0b' : '#10b981'};border:none;padding:6px 10px;border-radius:6px;cursor:pointer;" title="${isActive ? 'Nonaktifkan' : 'Aktifkan'}">
+                        ${isActive ? '⏸️' : '▶️'}
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(148,163,184,0.2);">
+            <button onclick="navigateTo('homeScreen')" style="background:rgba(148,163,184,0.2);color:#94a3b8;border:1px solid rgba(148,163,184,0.3);padding:10px 20px;border-radius:8px;cursor:pointer;">← Kembali</button>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function showAddUserForm() {
+    // Remove existing modal if any
+    const existing = document.getElementById('addUserModal');
+    if (existing) existing.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'addUserModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    
+    modal.innerHTML = `
+        <div style="background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(148,163,184,0.2);border-radius:16px;padding:24px;width:100%;max-width:400px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.7);">
+            <h3 style="color:#f8fafc;margin:0 0 20px 0;font-size:1.25em;">Tambah User Baru</h3>
+            <form id="addUserForm" onsubmit="submitNewUser(event)">
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;color:#94a3b8;font-size:0.875em;margin-bottom:6px;">Username *</label>
+                    <input type="text" id="newUsername" required pattern="[a-z0-9_]+" title="Hanya huruf kecil, angka, dan underscore" 
+                        style="width:100%;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.2);border-radius:8px;padding:10px 12px;color:#f8fafc;font-size:0.95em;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;color:#94a3b8;font-size:0.875em;margin-bottom:6px;">Password *</label>
+                    <input type="text" id="newPassword" required minlength="4" 
+                        style="width:100%;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.2);border-radius:8px;padding:10px 12px;color:#f8fafc;font-size:0.95em;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;color:#94a3b8;font-size:0.875em;margin-bottom:6px;">Nama Lengkap *</label>
+                    <input type="text" id="newName" required 
+                        style="width:100%;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.2);border-radius:8px;padding:10px 12px;color:#f8fafc;font-size:0.95em;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;color:#94a3b8;font-size:0.875em;margin-bottom:6px;">Role *</label>
+                    <select id="newRole" required 
+                        style="width:100%;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.2);border-radius:8px;padding:10px 12px;color:#f8fafc;font-size:0.95em;box-sizing:border-box;">
+                        <option value="operator">Operator</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;color:#94a3b8;font-size:0.875em;margin-bottom:6px;">Department</label>
+                    <input type="text" id="newDepartment" value="Unit Utilitas 3B" 
+                        style="width:100%;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.2);border-radius:8px;padding:10px 12px;color:#f8fafc;font-size:0.95em;box-sizing:border-box;">
+                </div>
+                <div style="display:flex;gap:12px;justify-content:flex-end;">
+                    <button type="button" onclick="closeAddUserForm()" 
+                        style="background:transparent;color:#94a3b8;border:1px solid rgba(148,163,184,0.3);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:500;">Batal</button>
+                    <button type="submit" 
+                        style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeAddUserForm();
+    });
+    
+    document.body.appendChild(modal);
+}
+
+function closeAddUserForm() {
+    const modal = document.getElementById('addUserModal');
+    if (modal) modal.remove();
+}
+
+async function submitNewUser(e) {
+    e.preventDefault();
+    
+    const userData = {
+        username: document.getElementById('newUsername').value.trim().toLowerCase(),
+        password: document.getElementById('newPassword').value, // PLAINTEXT
+        name: document.getElementById('newName').value.trim(),
+        role: document.getElementById('newRole').value,
+        department: document.getElementById('newDepartment').value.trim()
+    };
+    
+    if (!userData.username || !userData.password || !userData.name) {
+        alert('Semua field wajib diisi!');
+        return;
+    }
+    
+    // Coba kirim ke server
+    try {
+        await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'USER_MANAGEMENT',
+                action: 'add',
+                admin: currentUser.username,
+                user: userData
+            })
+        });
+        
+        showCustomAlert(`User ${userData.username} berhasil ditambahkan!`, 'success');
+        closeAddUserForm();
+        loadUserManagement(); // Refresh
+        
+    } catch (error) {
+        // Fallback: simpan ke localStorage untuk sinkron nanti
+        let pending = JSON.parse(localStorage.getItem('pending_users') || '[]');
+        pending.push({...userData, _pending: true, _createdAt: new Date().toISOString()});
+        localStorage.setItem('pending_users', JSON.stringify(pending));
+        
+        // Update local backup juga
+        LOCAL_USERS[userData.username] = {
+            password: userData.password,
+            role: userData.role,
+            name: userData.name,
+            department: userData.department
+        };
+        
+        showCustomAlert('User disimpan lokal (mode offline)', 'warning');
+        closeAddUserForm();
+        loadUserManagement();
+    }
+}
+
+async function toggleUserStatus(username, currentStatus) {
+    if (!confirm(`Yakin ingin ${currentStatus === 'ACTIVE' ? 'MENONAKTIFKAN' : 'MENGAKTIFKAN'} user ${username}?`)) return;
+    
+    try {
+        await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'USER_MANAGEMENT',
+                action: 'toggle',
+                admin: currentUser.username,
+                username: username
+            })
+        });
+        
+        showCustomAlert(`Status user ${username} diubah!`, 'success');
+        loadUserManagement();
+        
+    } catch (error) {
+        alert('Gagal: ' + error.message);
+    }
+}
+
+function editUser(username) {
+    alert('Fitur edit akan mengarahkan ke Google Spreadsheet.\n\nSilakan edit langsung di sheet USERS untuk mengubah data user.');
+    // Bisa ditambahkan window.open ke URL spreadsheet jika diinginkan
+}
+
+// ============================================
+// UI & NAVIGATION FUNCTIONS
+// ============================================
+
+function setupLoginListeners() {
+    const nameInput = document.getElementById('operatorName');
+    const passwordInput = document.getElementById('operatorPassword');
+    
+    if (nameInput) {
+        nameInput.addEventListener('input', () => nameInput.classList.remove('error'));
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (passwordInput) passwordInput.focus();
+            }
+        });
+    }
+    
+    if (passwordInput) {
+        passwordInput.addEventListener('input', () => passwordInput.classList.remove('error'));
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loginOperator();
+        });
+    }
+}
+
+function setupTPMListeners() {
+    const tpmCamera = document.getElementById('tpmCamera');
+    if (tpmCamera) {
+        tpmCamera.addEventListener('change', handleTPMPhoto);
+    }
+}
+
+function simulateLoading() {
+    let progress = 0;
+    const loaderProgress = document.getElementById('loaderProgress');
+    const interval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                if (loader) loader.style.display = 'none';
+                
+                if (isAuthenticated) {
+                    renderMenu();
+                }
+            }, 500);
+        }
+        if (loaderProgress) loaderProgress.style.width = progress + '%';
+    }, 300);
+}
+
+function showUpdateAlert() {
+    const updateAlert = document.getElementById('updateAlert');
+    if (updateAlert) updateAlert.classList.remove('hidden');
+}
+
+function applyUpdate() {
+    if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+    }
+    window.location.reload();
+}
+
+function showCustomAlert(msg, type = 'success') {
+    const alertContent = document.getElementById('alertContent');
+    const alertTitle = document.getElementById('alertTitle');
+    const alertIconWrapper = document.getElementById('alertIconWrapper');
+    const customAlert = document.getElementById('customAlert');
+    
+    if (!customAlert) {
+        alert(msg);
+        return;
+    }
+    
+    if (autoCloseTimer) {
+        clearTimeout(autoCloseTimer);
+        autoCloseTimer = null;
+    }
+    
+    const titleMap = {
+        'success': 'Berhasil',
+        'error': 'Error',
+        'warning': 'Peringatan',
+        'info': 'Informasi'
+    };
+    if (alertTitle) alertTitle.textContent = titleMap[type] || 'Informasi';
+    
+    const alertMessage = document.getElementById('alertMessage');
+    if (alertMessage) alertMessage.innerText = msg;
+    
+    if (alertContent) alertContent.className = 'alert-content ' + type;
+    
+    // Icons
+    if (alertIconWrapper) {
+        if (type === 'success') {
+            alertIconWrapper.innerHTML = `
+                <div style="width:52px;height:52px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <svg width="28" height="28" viewBox="0 0 52 52" style="stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;">
+                        <circle cx="26" cy="26" r="25" style="stroke-width:2;"/>
+                        <path d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>`;
+        } else if (type === 'warning') {
+            alertIconWrapper.innerHTML = `
+                <div style="width:52px;height:52px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>`;
+        } else if (type === 'error') {
+            alertIconWrapper.innerHTML = `
+                <div style="width:52px;height:52px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <svg width="28" height="28" viewBox="0 0 52 52" style="stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;">
+                        <circle cx="26" cy="26" r="25" style="stroke-width:2;"/>
+                        <path d="M16 16 L36 36 M36 16 L16 36"/>
+                    </svg>
+                </div>`;
+        } else {
+            alertIconWrapper.innerHTML = `
+                <div style="width:52px;height:52px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                </div>`;
+        }
+    }
+    
+    customAlert.classList.remove('hidden');
+    
+    if (type === 'success' || type === 'info') {
+        autoCloseTimer = setTimeout(() => {
+            if (!customAlert.classList.contains('hidden')) closeAlert();
+        }, 3000);
+    }
+}
+
+function closeAlert() {
+    const customAlert = document.getElementById('customAlert');
+    if (customAlert) customAlert.classList.add('hidden');
+    if (autoCloseTimer) {
+        clearTimeout(autoCloseTimer);
+        autoCloseTimer = null;
+    }
+}
+
+function navigateTo(screenId) {
+    const protectedScreens = ['homeScreen', 'areaListScreen', 'paramScreen', 'tpmScreen', 'tpmInputScreen', 'balancingScreen', 'userManagementScreen'];
+    if (protectedScreens.includes(screenId) && !requireAuth()) {
+        return;
+    }
+    
+    document.querySelectorAll('.screen').forEach(s => {
+        s.classList.remove('active');
+        s.style.animation = 'none';
+        setTimeout(() => s.style.animation = '', 10);
+    });
+    
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.classList.add('active');
+        
+        if (screenId === 'tpmScreen' || screenId === 'tpmInputScreen') {
+            updateTPMUserInfo();
+        } else if (screenId === 'areaListScreen') {
+            fetchLastData();
+            updateOverallProgress();
+        } else if (screenId === 'homeScreen') {
+            loadUserStats();
+        } else if (screenId === 'balancingScreen') {
+            initBalancingScreen();
+        } else if (screenId === 'userManagementScreen') {
+            loadUserManagement();
+        }
     }
 }
 
 // ============================================
 // UPLOAD PROGRESS MANAGER
 // ============================================
+
 function showUploadProgress(title = 'Mengupload Data...') {
     const overlay = document.getElementById('uploadProgressOverlay');
     const percentage = document.getElementById('progressPercentage');
@@ -534,11 +1060,13 @@ function showUploadProgress(title = 'Mengupload Data...') {
     const turbine = document.getElementById('uploadTurbine');
     const statusText = document.getElementById('uploadStatusText');
     
-    overlay.classList.remove('hidden', 'success', 'error');
-    percentage.textContent = '0%';
-    ringFill.style.strokeDashoffset = 339.292;
-    turbine.classList.add('spinning');
-    statusText.textContent = title;
+    if (overlay) {
+        overlay.classList.remove('hidden', 'success', 'error');
+    }
+    if (percentage) percentage.textContent = '0%';
+    if (ringFill) ringFill.style.strokeDashoffset = 339.292;
+    if (turbine) turbine.classList.add('spinning');
+    if (statusText) statusText.textContent = title;
     
     document.querySelectorAll('.step').forEach((step, idx) => {
         step.classList.remove('active', 'completed');
@@ -671,195 +1199,9 @@ function cancelUpload() {
 }
 
 // ============================================
-// UI & NAVIGATION FUNCTIONS
-// ============================================
-function setupLoginListeners() {
-    const nameInput = document.getElementById('operatorName');
-    const passwordInput = document.getElementById('operatorPassword');
-    
-    if (nameInput) {
-        nameInput.addEventListener('input', () => {
-            nameInput.classList.remove('error');
-        });
-        
-        nameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                if (passwordInput) passwordInput.focus();
-            }
-        });
-    }
-    
-    if (passwordInput) {
-        passwordInput.addEventListener('input', () => {
-            passwordInput.classList.remove('error');
-        });
-        
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                loginOperator();
-            }
-        });
-    }
-}
-
-function setupTPMListeners() {
-    const tpmCamera = document.getElementById('tpmCamera');
-    if (tpmCamera) {
-        tpmCamera.addEventListener('change', handleTPMPhoto);
-    }
-}
-
-function simulateLoading() {
-    let progress = 0;
-    const loaderProgress = document.getElementById('loaderProgress');
-    const interval = setInterval(() => {
-        progress += Math.random() * 30;
-        if (progress >= 100) {
-            progress = 100;
-            clearInterval(interval);
-            setTimeout(() => {
-                const loader = document.getElementById('loader');
-                if (loader) loader.style.display = 'none';
-                
-                if (isAuthenticated) {
-                    renderMenu();
-                }
-            }, 500);
-        }
-        if (loaderProgress) loaderProgress.style.width = progress + '%';
-    }, 300);
-}
-
-function showUpdateAlert() {
-    const updateAlert = document.getElementById('updateAlert');
-    if (updateAlert) updateAlert.classList.remove('hidden');
-}
-
-function applyUpdate() {
-    if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-    }
-    window.location.reload();
-}
-
-function showCustomAlert(msg, type = 'success') {
-    const alertContent = document.getElementById('alertContent');
-    const alertTitle = document.getElementById('alertTitle');
-    const alertIconWrapper = document.getElementById('alertIconWrapper');
-    const customAlert = document.getElementById('customAlert');
-    
-    if (!customAlert || !alertContent || !alertTitle || !alertIconWrapper) {
-        console.error('Alert elements not found');
-        alert(msg);
-        return;
-    }
-    
-    if (autoCloseTimer) {
-        clearTimeout(autoCloseTimer);
-        autoCloseTimer = null;
-    }
-    
-    const titleMap = {
-        'success': 'Berhasil',
-        'error': 'Error',
-        'warning': 'Peringatan',
-        'info': 'Informasi'
-    };
-    alertTitle.textContent = titleMap[type] || 'Informasi';
-    
-    const alertMessage = document.getElementById('alertMessage');
-    if (alertMessage) alertMessage.innerText = msg;
-    
-    alertContent.className = 'alert-content ' + type;
-    
-    if (type === 'success') {
-        alertIconWrapper.innerHTML = `
-            <div class="alert-icon-bg"></div>
-            <svg class="alert-icon-svg" viewBox="0 0 52 52">
-                <circle cx="26" cy="26" r="25"></circle>
-                <path d="M14.1 27.2l7.1 7.2 16.7-16.8"></path>
-            </svg>
-        `;
-    } else if (type === 'warning') {
-        alertIconWrapper.innerHTML = `
-            <div class="alert-icon-bg" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);"></div>
-            <svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #f59e0b;">
-                <circle cx="26" cy="26" r="25"></circle>
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-        `;
-    } else if (type === 'info') {
-        alertIconWrapper.innerHTML = `
-            <div class="alert-icon-bg" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);"></div>
-            <svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #3b82f6;">
-                <circle cx="26" cy="26" r="25"></circle>
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-        `;
-    } else {
-        alertIconWrapper.innerHTML = `
-            <div class="alert-icon-bg" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);"></div>
-            <svg class="alert-icon-svg" viewBox="0 0 52 52" style="stroke: #ef4444;">
-                <circle cx="26" cy="26" r="25"></circle>
-                <path d="M16 16 L36 36 M36 16 L16 36"></path>
-            </svg>
-        `;
-    }
-    
-    customAlert.classList.remove('hidden');
-    
-    if (type === 'success' || type === 'info') {
-        autoCloseTimer = setTimeout(() => {
-            if (!customAlert.classList.contains('hidden')) closeAlert();
-        }, 3000);
-    }
-}
-
-function closeAlert() {
-    const customAlert = document.getElementById('customAlert');
-    if (customAlert) customAlert.classList.add('hidden');
-    if (autoCloseTimer) {
-        clearTimeout(autoCloseTimer);
-        autoCloseTimer = null;
-    }
-}
-
-function navigateTo(screenId) {
-    const protectedScreens = ['homeScreen', 'areaListScreen', 'paramScreen', 'tpmScreen', 'tpmInputScreen', 'balancingScreen'];
-    if (protectedScreens.includes(screenId) && !requireAuth()) {
-        return;
-    }
-    
-    document.querySelectorAll('.screen').forEach(s => {
-        s.classList.remove('active');
-        s.style.animation = 'none';
-        setTimeout(() => s.style.animation = '', 10);
-    });
-    
-    const targetScreen = document.getElementById(screenId);
-    if (targetScreen) {
-        targetScreen.classList.add('active');
-        
-        if (screenId === 'tpmScreen' || screenId === 'tpmInputScreen') {
-            updateTPMUserInfo();
-        }
-        
-        if (screenId === 'areaListScreen') {
-            fetchLastData();
-            updateOverallProgress();
-        } else if (screenId === 'homeScreen') {
-            loadUserStats();
-        } else if (screenId === 'balancingScreen') {
-            initBalancingScreen();
-        }
-    }
-}
-
-// ============================================
 // LOGSHEET FUNCTIONS
 // ============================================
+
 function fetchLastData() {
     updateStatusIndicator(false);
     const timeout = setTimeout(() => renderMenu(), 8000);
@@ -914,24 +1256,24 @@ function renderMenu() {
         const strokeDashoffset = circumference - (percent / 100) * circumference;
         
         html += `
-            <div class="area-item ${isCompleted ? 'completed' : ''} ${hasAbnormal ? 'has-warning' : ''}" onclick="openArea('${areaName}')">
-                <div class="area-progress-ring">
+            <div class="area-item ${isCompleted ? 'completed' : ''} ${hasAbnormal ? 'has-warning' : ''}" onclick="openArea('${areaName}')" style="display:flex;align-items:center;padding:16px;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.1);border-radius:12px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;">
+                <div style="margin-right:16px;">
                     <svg width="40" height="40" viewBox="0 0 40 40">
                         <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
-                        <circle cx="20" cy="20" r="18" fill="none" stroke="${isCompleted ? '#10b981' : 'var(--primary)'}" 
+                        <circle cx="20" cy="20" r="18" fill="none" stroke="${isCompleted ? '#10b981' : 'var(--primary, #3b82f6)'}" 
                                 stroke-width="3" stroke-linecap="round" stroke-dasharray="${circumference}" 
                                 stroke-dashoffset="${strokeDashoffset}" transform="rotate(-90 20 20)"/>
-                        <text x="20" y="24" text-anchor="middle" font-size="10" font-weight="bold" fill="${isCompleted ? '#10b981' : 'var(--text-primary)'}">${filled}</text>
+                        <text x="20" y="24" text-anchor="middle" font-size="10" font-weight="bold" fill="${isCompleted ? '#10b981' : '#f8fafc'}">${filled}</text>
                     </svg>
                 </div>
-                <div class="area-info">
-                    <div class="area-name">${areaName}</div>
-                    <div class="area-meta ${hasAbnormal ? 'warning' : ''}">
+                <div style="flex:1;">
+                    <div style="font-weight:600;color:#f8fafc;margin-bottom:4px;">${areaName}</div>
+                    <div style="font-size:0.85em;color:${hasAbnormal ? '#ef4444' : '#94a3b8'};">
                         ${hasAbnormal ? '⚠️ Ada parameter bermasalah • ' : ''}${filled} dari ${total} parameter
                     </div>
                 </div>
-                <div class="area-status">
-                    ${hasAbnormal ? '<span style="color: #ef4444; margin-right: 4px;">!</span>' : ''}
+                <div style="font-size:1.2em;color:${isCompleted ? '#10b981' : '#94a3b8'};">
+                    ${hasAbnormal ? '<span style="color:#ef4444;margin-right:8px;">!</span>' : ''}
                     ${isCompleted ? '✓' : '❯'}
                 </div>
             </div>
@@ -996,12 +1338,18 @@ function renderProgressDots() {
         const hasIssue = ['ERROR', 'UPPER', 'NOT_INSTALLED'].includes(firstLine);
         const isActive = i === activeIdx;
         
-        let className = '';
-        if (isActive) className = 'active';
-        else if (hasIssue) className = 'has-issue';
-        else if (isFilled) className = 'filled';
+        let style = 'width:8px;height:8px;border-radius:50%;margin:0 3px;cursor:pointer;transition:all 0.2s;';
+        if (isActive) {
+            style += 'background:#3b82f6;transform:scale(1.3);';
+        } else if (hasIssue) {
+            style += 'background:#ef4444;';
+        } else if (isFilled) {
+            style += 'background:#10b981;';
+        } else {
+            style += 'background:rgba(148,163,184,0.3);';
+        }
         
-        html += `<div class="progress-dot ${className}" onclick="jumpToStep(${i})" title="${hasIssue ? firstLine : ''}"></div>`;
+        html += `<div style="${style}" onclick="jumpToStep(${i})" title="${hasIssue ? firstLine : ''}"></div>`;
     }
     container.innerHTML = html;
 }
@@ -1067,12 +1415,13 @@ function handleStatusChange(checkbox) {
     document.querySelectorAll('input[name="paramStatus"]').forEach(cb => {
         if (cb !== checkbox) {
             cb.checked = false;
-            cb.closest('.status-chip').classList.remove('active');
+            const otherChip = cb.closest('.status-chip');
+            if (otherChip) otherChip.classList.remove('active');
         }
     });
     
     if (checkbox.checked) {
-        chip.classList.add('active');
+        if (chip) chip.classList.add('active');
         if (noteContainer) noteContainer.style.display = 'block';
         
         setTimeout(() => {
@@ -1089,7 +1438,7 @@ function handleStatusChange(checkbox) {
             }
         }
     } else {
-        chip.classList.remove('active');
+        if (chip) chip.classList.remove('active');
         if (noteContainer) noteContainer.style.display = 'none';
         const noteInput = document.getElementById('statusNote');
         if (noteInput) noteInput.value = '';
@@ -1145,7 +1494,8 @@ function saveCurrentStatusToDraft() {
 function loadAbnormalStatus(fullLabel) {
     document.querySelectorAll('input[name="paramStatus"]').forEach(cb => {
         cb.checked = false;
-        cb.closest('.status-chip').classList.remove('active');
+        const chip = cb.closest('.status-chip');
+        if (chip) chip.classList.remove('active');
     });
     const noteContainer = document.getElementById('statusNoteContainer');
     const noteInput = document.getElementById('statusNote');
@@ -1173,7 +1523,8 @@ function loadAbnormalStatus(fullLabel) {
             const checkbox = document.querySelector(`input[value="${firstLine}"]`);
             if (checkbox) {
                 checkbox.checked = true;
-                checkbox.closest('.status-chip').classList.add('active');
+                const chip = checkbox.closest('.status-chip');
+                if (chip) chip.classList.add('active');
                 if (noteContainer) noteContainer.style.display = 'block';
                 if (noteInput) noteInput.value = secondLine;
                 
@@ -1244,10 +1595,12 @@ function showStep() {
         
         if (inputFieldContainer) {
             inputFieldContainer.innerHTML = `
-                <div class="select-wrapper">
-                    <select id="valInput" class="status-select">${optionsHtml}</select>
-                    <div class="select-arrow">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div style="position:relative;">
+                    <select id="valInput" style="width:100%;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.2);border-radius:12px;padding:16px;color:#f8fafc;font-size:1.1em;appearance:none;">
+                        ${optionsHtml}
+                    </select>
+                    <div style="position:absolute;right:16px;top:50%;transform:translateY(-50%);pointer-events:none;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#94a3b8;">
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
                     </div>
@@ -1255,7 +1608,6 @@ function showStep() {
             `;
         }
         if (unitDisplay) unitDisplay.style.display = 'none';
-        if (mainInputWrapper) mainInputWrapper.classList.add('has-select');
     } else {
         let currentValue = (currentInput[activeArea] && currentInput[activeArea][fullLabel]) || '';
         
@@ -1270,13 +1622,12 @@ function showStep() {
         }
         
         if (inputFieldContainer) {
-            inputFieldContainer.innerHTML = `<input type="text" id="valInput" inputmode="decimal" placeholder="0.00" value="${currentValue}" autocomplete="off">`;
+            inputFieldContainer.innerHTML = `<input type="text" id="valInput" inputmode="decimal" placeholder="0.00" value="${currentValue}" autocomplete="off" style="width:100%;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.2);border-radius:12px;padding:16px;color:#f8fafc;font-size:1.1em;text-align:center;">`;
         }
         if (unitDisplay) {
             unitDisplay.textContent = getUnit(fullLabel) || '--';
             unitDisplay.style.display = 'flex';
         }
-        if (mainInputWrapper) mainInputWrapper.classList.remove('has-select');
     }
     
     loadAbnormalStatus(fullLabel);
@@ -1378,20 +1729,6 @@ function goBack() {
     }
 }
 
-// ============================================
-// API COMMUNICATION HELPER
-// ============================================
-function getCredentialsForAPI() {
-    const session = getSession();
-    if (session && session.username && session.password) {
-        return {
-            username: session.username,
-            password: session.password
-        };
-    }
-    return null;
-}
-
 async function sendToSheet() {
     if (!requireAuth()) return;
     
@@ -1414,7 +1751,7 @@ async function sendToSheet() {
     
     const finalData = {
         type: 'LOGSHEET',
-        ...creds,
+        ...creds, // PLAINTEXT credentials
         Operator: currentUser ? currentUser.name : 'Unknown',
         ...allParameters
     };
@@ -1457,6 +1794,7 @@ async function sendToSheet() {
 // ============================================
 // TPM FUNCTIONS
 // ============================================
+
 function updateTPMUserInfo() {
     if (!currentUser) return;
     
@@ -1489,8 +1827,8 @@ function resetTPMForm() {
     
     if (preview) {
         preview.innerHTML = `
-            <div class="photo-placeholder">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#64748b;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                 </svg>
@@ -1514,7 +1852,10 @@ function resetTPMStatusButtons() {
     const buttons = ['btnNormal', 'btnAbnormal', 'btnOff'];
     buttons.forEach((id) => {
         const btn = document.getElementById(id);
-        if (btn) btn.className = 'status-btn';
+        if (btn) {
+            btn.className = 'status-btn';
+            btn.style.cssText = '';
+        }
     });
 }
 
@@ -1554,15 +1895,15 @@ function selectTPMStatus(status) {
     resetTPMStatusButtons();
     
     const buttonMap = {
-        'normal': { id: 'btnNormal', class: 'active-normal' },
-        'abnormal': { id: 'btnAbnormal', class: 'active-abnormal' },
-        'off': { id: 'btnOff', class: 'active-off' }
+        'normal': { id: 'btnNormal', style: 'background:linear-gradient(135deg,#10b981,#059669);color:white;border-color:#10b981;' },
+        'abnormal': { id: 'btnAbnormal', style: 'background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border-color:#ef4444;' },
+        'off': { id: 'btnOff', style: 'background:linear-gradient(135deg,#64748b,#475569);color:white;border-color:#64748b;' }
     };
     
     const selected = buttonMap[status];
     if (selected) {
         const btn = document.getElementById(selected.id);
-        if (btn) btn.classList.add(selected.class);
+        if (btn) btn.style.cssText = selected.style + 'padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;flex:1;';
     }
     
     if ((status === 'abnormal' || status === 'off') && !currentTPMPhoto) {
@@ -1607,7 +1948,7 @@ async function submitTPMData() {
     
     const tpmData = {
         type: 'TPM',
-        ...creds,
+        ...creds, // PLAINTEXT credentials
         area: activeTPMArea,
         status: currentTPMStatus,
         action: action,
@@ -1653,6 +1994,7 @@ async function submitTPMData() {
 // ============================================
 // BALANCING FUNCTIONS
 // ============================================
+
 function saveBalancingDraft() {
     try {
         const draftData = {};
@@ -2249,7 +2591,7 @@ async function submitBalancingData() {
     
     const balancingData = {
         type: 'BALANCING',
-        ...creds,
+        ...creds, // PLAINTEXT credentials
         Operator: currentUser ? currentUser.name : 'Unknown',
         Timestamp: new Date().toISOString(),
         
@@ -2352,9 +2694,32 @@ async function submitBalancingData() {
     }
 }
 
+function loadUserStats() {
+    const totalAreas = Object.keys(AREAS).length;
+    let completedAreas = 0;
+    
+    Object.entries(AREAS).forEach(([areaName, params]) => {
+        const filled = currentInput[areaName] ? Object.keys(currentInput[areaName]).length : 0;
+        if (filled === params.length && filled > 0) completedAreas++;
+    });
+    
+    const statProgress = document.getElementById('statProgress');
+    const statAreas = document.getElementById('statAreas');
+    
+    if (statProgress) {
+        const percent = Math.round((completedAreas / totalAreas) * 100);
+        statProgress.textContent = `${percent}%`;
+    }
+    
+    if (statAreas) {
+        statAreas.textContent = `${completedAreas}/${totalAreas}`;
+    }
+}
+
 // ============================================
 // PWA INSTALL HANDLER
 // ============================================
+
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -2406,25 +2771,11 @@ function showCustomInstallBanner() {
                 justify-content: center;
                 font-size: 40px;
                 box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
-            ">
-                ⚡
-            </div>
+            ">⚡</div>
             
-            <h3 style="
-                color: #f8fafc;
-                font-size: 1.25rem;
-                font-weight: 700;
-                margin-bottom: 8px;
-            ">
-                Install Aplikasi
-            </h3>
+            <h3 style="color: #f8fafc; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Install Aplikasi</h3>
             
-            <p style="
-                color: #94a3b8;
-                font-size: 0.875rem;
-                margin-bottom: 24px;
-                line-height: 1.5;
-            ">
+            <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 24px; line-height: 1.5;">
                 Tambahkan Turbine Log ke layar utama untuk akses lebih cepat dan pengalaman seperti aplikasi native.
             </p>
             
@@ -2439,10 +2790,7 @@ function showCustomInstallBanner() {
                     font-size: 1rem;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: transform 0.2s;
-                " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                    Install Sekarang
-                </button>
+                ">Install Sekarang</button>
                 
                 <button onclick="hideCustomInstallBanner()" style="
                     width: 100%;
@@ -2453,10 +2801,7 @@ function showCustomInstallBanner() {
                     border-radius: 12px;
                     font-size: 0.9375rem;
                     cursor: pointer;
-                    transition: all 0.2s;
-                ">
-                    Nanti Saja
-                </button>
+                ">Nanti Saja</button>
             </div>
         </div>
         
@@ -2514,20 +2859,14 @@ function showToast(msg, type) {
 }
 
 // ============================================
-// VERSION AUTO-UPDATE SYSTEM
+// VERSION & KEYBOARD
 // ============================================
 
-/**
- * Update semua elemen yang menampilkan versi di seluruh halaman
- * serta resource links untuk cache busting
- */
 function updateVersionDisplays() {
-    // 1. Update elemen dengan class 'version-display'
     document.querySelectorAll('.version-display').forEach(el => {
         el.textContent = 'v' + APP_VERSION;
     });
     
-    // 2. Update meta tag app-version
     const metaVersion = document.querySelector('meta[name="app-version"]');
     if (metaVersion) {
         metaVersion.content = APP_VERSION;
@@ -2536,29 +2875,18 @@ function updateVersionDisplays() {
     console.log(`[Version System] UI Updated to v${APP_VERSION}`);
 }
 
-/**
- * Check for version updates and notify user
- */
 function checkVersionUpdate() {
     const storedVersion = localStorage.getItem('app_stored_version');
     if (storedVersion && storedVersion !== APP_VERSION) {
         console.log(`[Version] Updated from ${storedVersion} to ${APP_VERSION}`);
-        // Optional: Show update notification
-        // showCustomAlert(`Aplikasi diperbarui ke v${APP_VERSION}`, 'info');
     }
     localStorage.setItem('app_stored_version', APP_VERSION);
 }
 
-/**
- * Get current app version
- */
 function getAppVersion() {
     return APP_VERSION;
 }
 
-// ============================================
-// KEYBOARD SHORTCUTS
-// ============================================
 document.addEventListener('keydown', (e) => {
     const paramScreen = document.getElementById('paramScreen');
     if (!paramScreen || !paramScreen.classList.contains('active')) return;
@@ -2574,8 +2902,8 @@ document.addEventListener('keydown', (e) => {
 // ============================================
 // INITIALIZATION
 // ============================================
+
 window.addEventListener('DOMContentLoaded', () => {
-    // Update versi di seluruh UI terlebih dahulu
     updateVersionDisplays();
     checkVersionUpdate();
     
