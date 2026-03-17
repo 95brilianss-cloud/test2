@@ -6,7 +6,7 @@
 // ============================================
 // CONFIGURATION & CONSTANTS
 // ============================================
-const APP_VERSION = '2.1.1';
+const APP_VERSION = '2.1.2';
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz7U2Uu3JzASLs40vyqjmUziSdvwOCOiNu7e4qes1B0Ot3o1rIzVrPsdPCkcl3w00twFg/exec";
 
 const AUTH_CONFIG = {
@@ -734,8 +734,8 @@ async function submitNewUser() {
             return;
         }
         
-        // 3. Get values
-        const username = usernameEl.value.trim().toLowerCase();
+        // 3. Get values dengan sanitasi ekstra
+        const username = usernameEl.value.trim().toLowerCase().replace(/\s+/g, '');
         const password = passwordEl.value;
         const name = nameEl.value.trim();
         const role = roleEl.value;
@@ -758,19 +758,23 @@ async function submitNewUser() {
             return;
         }
         
-        // 5. Check if exists
-        console.log('Checking existing users...');
+        // 5. Check if exists - dengan logging detail
+        console.log('Checking existing users for:', username);
         let users = {};
         try {
             const stored = localStorage.getItem(USER_STORAGE_KEY);
             users = stored ? JSON.parse(stored) : {};
+            console.log('Current users in storage:', Object.keys(users));
         } catch (e) {
             console.error('Error reading users:', e);
             users = {};
         }
         
+        // Cek apakah user sudah ada (case insensitive sudah dihandle oleh toLowerCase di atas)
         if (users[username]) {
-            showError('Username sudah terdaftar!');
+            console.log('User found:', users[username]);
+            const existingUser = users[username];
+            showError(`Username "${username}" sudah terdaftar atas nama "${existingUser.name}" (Role: ${existingUser.role})`);
             return;
         }
         
@@ -792,7 +796,7 @@ async function submitNewUser() {
         users[username] = newUser;
         try {
             localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
-            console.log('User saved to localStorage');
+            console.log('User saved to localStorage. Total users:', Object.keys(users).length);
         } catch (e) {
             console.error('Error saving to localStorage:', e);
             showError('Gagal menyimpan data lokal: ' + e.message);
@@ -845,6 +849,38 @@ async function submitNewUser() {
         } else {
             showCustomAlert(msg, 'error');
         }
+    }
+}
+
+// Tambahkan fungsi untuk debug - menampilkan semua user di console
+function debugShowAllUsers() {
+    try {
+        const stored = localStorage.getItem(USER_STORAGE_KEY);
+        const users = stored ? JSON.parse(stored) : {};
+        console.table(users);
+        return users;
+    } catch (e) {
+        console.error('Error reading users:', e);
+        return {};
+    }
+}
+
+// Fungsi untuk reset semua user (HATI-HATI - hanya untuk development)
+function resetAllUsers() {
+    if (confirm('⚠️ PERINGATAN!\n\nIni akan menghapus SEMUA user kecuali default (admin, operator, utilitas3b).\n\nLanjutkan?')) {
+        const defaultUsers = {};
+        Object.entries(USER_CREDENTIALS).forEach(([username, data]) => {
+            defaultUsers[username] = {
+                ...data,
+                status: 'Active',
+                createdAt: new Date().toISOString(),
+                isDefault: true
+            };
+        });
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(defaultUsers));
+        showCustomAlert('User database telah direset ke default', 'success');
+        renderUserManagement();
+        console.log('Users reset to defaults');
     }
 }
 
